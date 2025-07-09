@@ -28,7 +28,8 @@ import {
   Select,
   MenuItem,
   Tooltip,
-  Badge
+  Badge,
+  Grid
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -366,23 +367,19 @@ Zoe Grupo de Compras`;
           <Skeleton variant="text" width={200} height={40} />
           <Skeleton variant="text" width={300} height={24} />
         </Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+        <Grid container spacing={2}>
           {[...Array(6)].map((_, index) => (
-            <Skeleton variant="rectangular" height={200} key={index} />
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={index}>
+              <Skeleton variant="rectangular" height={200} />
+            </Grid>
           ))}
-        </Box>
+        </Grid>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ 
-      p: { xs: 2, md: 0 },
-      pl: { xs: 2, md: 1 },
-      pr: { xs: 2, md: 2 },
-      pt: { xs: 2, md: 1 },
-      pb: { xs: 2, md: 2 }
-    }}>
+    <Box sx={{ maxWidth: '100%', width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
@@ -394,172 +391,170 @@ Zoe Grupo de Compras`;
 
         {/* Lucro Cards */}
         {lucroData && (
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: '1fr', 
-              sm: '1fr 1fr', 
-              md: '1fr 1fr 1fr 1fr' 
-            }, 
-            gap: 2, 
-            mb: 3 
-          }}>
-            <Card sx={{ bgcolor: 'success.dark', color: 'white', height: '100%', boxShadow: 3 }}>
-              <CardContent sx={{ py: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <TrendingUpIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.1rem' }}>
-                      {formatUSD(lucroData.lucroTotalUSD)}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.95rem', mb: 0.5, fontWeight: 500 }}>
-                      {formatCurrency(lucroData.lucroTotalBRL)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
-                      💰 Lucro Total ({lucroData.margemPercentual}%)
-                    </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card sx={{ bgcolor: 'success.dark', color: 'white', height: '100%', boxShadow: 3 }}>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TrendingUpIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontSize: '1.1rem' }}>
+                        {formatUSD(lucroData.lucroTotalUSD)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.95rem', mb: 0.5, fontWeight: 500 }}>
+                        {formatCurrency(lucroData.lucroTotalBRL)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                        💰 Lucro Total ({lucroData.margemPercentual}%)
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Grid>
             
-            <Card sx={{ bgcolor: 'error.main', color: 'white', height: '100%', boxShadow: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card sx={{ bgcolor: 'error.main', color: 'white', height: '100%', boxShadow: 2 }}>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AccountBalanceIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
+                        {formatUSD(lucroData.custoTotalUSD)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                        {formatCurrency(lucroData.custoTotalBRL)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                        💸 Custo Total (c/ Imposto)
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card sx={{ bgcolor: 'info.main', color: 'white', height: '100%', boxShadow: 2 }}>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <MoneyIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
+                        {formatUSD(lucroData.vendaTotalUSD)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                        {formatCurrency(lucroData.vendaTotalBRL)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                        📊 Faturamento Total
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card sx={{ bgcolor: 'secondary.main', color: 'white', height: '100%', boxShadow: 2 }}>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <ReceiptIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
+                        {lucroData.totalProdutos} itens
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                        {lucroData.totalVendas} vendas
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                        📦 Total de Produtos/Vendas
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Stats Cards */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'primary.main', color: 'white', height: '100%' }}>
               <CardContent sx={{ py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AccountBalanceIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
-                      {formatUSD(lucroData.custoTotalUSD)}
+                  <ShoppingCartIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      {estatisticas.totalVendas}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-                      {formatCurrency(lucroData.custoTotalBRL)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
-                      💸 Custo Total (c/ Imposto)
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                      Total de Vendas
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
+          </Grid>
+          
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'warning.main', color: 'white', height: '100%' }}>
+              <CardContent sx={{ py: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <PaymentIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      {estatisticas.vendasPendentes}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                      Pendentes
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
 
-            <Card sx={{ bgcolor: 'info.main', color: 'white', height: '100%', boxShadow: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'success.main', color: 'white', height: '100%' }}>
               <CardContent sx={{ py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <MoneyIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
-                      {formatUSD(lucroData.vendaTotalUSD)}
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.1rem' }}>
+                      {formatCurrency(estatisticas.faturamentoTotal)}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-                      {formatCurrency(lucroData.vendaTotalBRL)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
-                      📊 Faturamento Total
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                      Faturamento Total
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
+          </Grid>
 
-            <Card sx={{ bgcolor: 'secondary.main', color: 'white', height: '100%', boxShadow: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'success.main', color: 'white', height: '100%' }}>
               <CardContent sx={{ py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <ReceiptIcon sx={{ fontSize: 36, mr: 1.5 }} />
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
-                      {lucroData.totalProdutos} itens
+                      {formatCurrency(estatisticas.valorRecebido)}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-                      {lucroData.totalVendas} vendas
+                    <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                      Falta: {formatCurrency(estatisticas.faturamentoTotal - estatisticas.valorRecebido)}
                     </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
-                      📦 Total de Produtos/Vendas
+                    <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+                      💰 Valor Recebido
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Box>
-        )}
-
-        {/* Stats Cards */}
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: '1fr', 
-            sm: '1fr 1fr', 
-            md: '1fr 1fr 1fr 1fr' 
-          }, 
-          gap: 2, 
-          mb: 3 
-        }}>
-          <Card sx={{ bgcolor: 'primary.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <ShoppingCartIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    {estatisticas.totalVendas}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                    Total de Vendas
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-          
-          <Card sx={{ bgcolor: 'warning.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <PaymentIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    {estatisticas.vendasPendentes}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                    Pendentes
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ bgcolor: 'success.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <MoneyIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.1rem' }}>
-                    {formatCurrency(estatisticas.faturamentoTotal)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                    Faturamento Total
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ bgcolor: 'success.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <ReceiptIcon sx={{ fontSize: 36, mr: 1.5 }} />
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
-                    {formatCurrency(estatisticas.valorRecebido)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
-                    Falta: {formatCurrency(estatisticas.faturamentoTotal - estatisticas.valorRecebido)}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                    💰 Valor Recebido
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+          </Grid>
+        </Grid>
 
         {/* Search and Filters */}
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
