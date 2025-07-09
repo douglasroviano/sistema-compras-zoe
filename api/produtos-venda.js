@@ -135,8 +135,7 @@ module.exports = async (req, res) => {
         console.log('Getting all products...');
         const { data, error } = await supabase
           .from('produtos_venda')
-          .select('*')
-          .order('created_at', { ascending: false });
+          .select('*');
         
         if (error) {
           console.error('Error fetching products:', error);

@@ -131,19 +131,7 @@ module.exports = async (req, res) => {
         console.log('Getting all sales...');
         const { data, error } = await supabase
           .from('vendas')
-          .select(`
-            *,
-            clientes!inner(nome, telefone),
-            produtos_venda!inner(
-              id,
-              produto_id,
-              quantidade,
-              preco_venda_brl,
-              preco_compra_usd,
-              lucro_usd,
-              lucro_brl
-            )
-          `)
+          .select('*')
           .order('data_venda', { ascending: false });
         
         if (error) {
