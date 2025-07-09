@@ -21,6 +21,23 @@ export default async function handler(req, res) {
     try {
       console.log('🔥 API /vendas/lucro - Calculando dados de lucro...');
       
+      // Verificar autenticação
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('❌ Token não fornecido');
+        return res.status(401).json({ error: 'Token de acesso requerido' });
+      }
+      
+      const token = authHeader.substring(7);
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
+        console.log('❌ Token inválido:', authError);
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+      
+      console.log('✅ Usuário autenticado:', user.email);
+      
       // Buscar todas as vendas
       const { data: vendas, error: vendasError } = await supabase
         .from('vendas')
