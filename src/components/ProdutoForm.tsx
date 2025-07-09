@@ -13,7 +13,6 @@ import {
   IconButton
 } from '@mui/material';
 import {
-  AttachMoney as MoneyIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import FotoUpload from './FotoUpload';
@@ -52,7 +51,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [, setUploadingFoto] = useState(false);
 
   useEffect(() => {
     if (produto) {

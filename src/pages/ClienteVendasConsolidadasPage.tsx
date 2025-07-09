@@ -184,7 +184,7 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
           produtosMap[chave].vendas_onde_aparece.push(venda.id);
         } else {
           produtosMap[chave] = {
-            nome_produto: produto.nome_produto,
+            nome_produto: produto.nome_produto || '',
             marca: produto.marca,
             cor: produto.cor,
             tamanho: produto.tamanho,

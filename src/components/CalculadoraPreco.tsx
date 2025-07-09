@@ -18,10 +18,7 @@ interface CalculadoraPrecoProps {
   onSugestaoChange?: (sugestao: number) => void;
 }
 
-interface CalculadoraReturn {
-  sugestaoPreco: number;
-  calculadora: JSX.Element;
-}
+
 
 type TipoCalculo = 'margem' | 'markup';
 
@@ -34,7 +31,7 @@ const CalculadoraPreco: React.FC<CalculadoraPrecoProps> = ({
   const [tipoCalculo, setTipoCalculo] = useState<TipoCalculo>('margem');
   const [valorMargem, setValorMargem] = useState<number>(30); // 30% padrão
   const [valorMarkup, setValorMarkup] = useState<number>(20); // $20 padrão
-  const [sugestaoPreco, setSugestaoPreco] = useState<number>(0);
+  const [, setSugestaoPreco] = useState<number>(0);
 
   // Calcula o custo real pago em USD (gôndola + imposto)
   const custoRealUSD = precoGondola * (1 + impostoPercentual / 100);
