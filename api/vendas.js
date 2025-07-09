@@ -99,6 +99,96 @@ module.exports = async (req, res) => {
       try {
         console.log('Executing GET request...');
         
+        // Rota para lucro de vendas
+        if (req.url && req.url.includes('/lucro')) {
+          console.log('Getting lucro data...');
+          
+          try {
+            // Buscar todas as vendas com produtos
+            const { data: vendas, error: vendasError } = await supabase
+              .from('vendas')
+              .select(`
+                id,
+                valor_total,
+                status_venda,
+                data_venda
+              `);
+            
+            if (vendasError) {
+              console.error('Error fetching vendas for lucro:', vendasError);
+              return res.status(500).json({ error: vendasError.message });
+            }
+
+            // Buscar produtos de venda
+            const { data: produtos, error: produtosError } = await supabase
+              .from('produtos_venda')
+              .select(`
+                venda_id,
+                preco_compra,
+                preco_venda,
+                quantidade,
+                dolar_agora,
+                imposto_percentual
+              `);
+            
+            if (produtosError) {
+              console.error('Error fetching produtos for lucro:', produtosError);
+              return res.status(500).json({ error: produtosError.message });
+            }
+
+            // Calcular métricas
+            let custoTotalUSD = 0;
+            let custoTotalBRL = 0;
+            let vendaTotalBRL = 0;
+            let vendaTotalUSD = 0;
+            let totalProdutos = 0;
+            
+            produtos.forEach(produto => {
+              const quantidade = produto.quantidade || 1;
+              const precoCompra = produto.preco_compra || 0;
+              const precoVenda = produto.preco_venda || 0;
+              const cotacao = produto.dolar_agora || 5.20;
+              const imposto = produto.imposto_percentual || 7;
+              
+              // Custo real USD (com imposto)
+              const custoRealUSD = precoCompra * (1 + imposto / 100);
+              const custoRealBRL = custoRealUSD * cotacao;
+              
+              custoTotalUSD += custoRealUSD * quantidade;
+              custoTotalBRL += custoRealBRL * quantidade;
+              vendaTotalBRL += precoVenda * quantidade;
+              totalProdutos += quantidade;
+            });
+            
+            // Converter venda total para USD
+            vendaTotalUSD = vendaTotalBRL / 5.20; // Cotação média
+            
+            // Calcular lucro
+            const lucroTotalUSD = vendaTotalUSD - custoTotalUSD;
+            const lucroTotalBRL = vendaTotalBRL - custoTotalBRL;
+            const margemPercentual = custoTotalBRL > 0 ? ((lucroTotalBRL / custoTotalBRL) * 100) : 0;
+            
+            const lucroData = {
+              lucroTotalUSD: Number(lucroTotalUSD.toFixed(2)),
+              lucroTotalBRL: Number(lucroTotalBRL.toFixed(2)),
+              custoTotalUSD: Number(custoTotalUSD.toFixed(2)),
+              custoTotalBRL: Number(custoTotalBRL.toFixed(2)),
+              vendaTotalBRL: Number(vendaTotalBRL.toFixed(2)),
+              vendaTotalUSD: Number(vendaTotalUSD.toFixed(2)),
+              margemPercentual: Number(margemPercentual.toFixed(1)),
+              totalVendas: vendas.length,
+              totalProdutos: totalProdutos
+            };
+            
+            console.log('Lucro data calculated successfully:', lucroData);
+            return res.json(lucroData);
+            
+          } catch (lucroError) {
+            console.error('Error calculating lucro:', lucroError);
+            return res.status(500).json({ error: 'Erro ao calcular lucro', details: lucroError.message });
+          }
+        }
+        
         if (req.query.id) {
           console.log('Getting specific sale by ID:', req.query.id);
           const { data, error } = await supabase
