@@ -1,6 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async (req, res) => {
   try {
     res.status(200).json({ 
       message: 'API funcionando!', 
@@ -12,6 +10,6 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Erro interno', details: error });
+    res.status(500).json({ error: 'Erro interno', details: error.message });
   }
-} 
+}; 
