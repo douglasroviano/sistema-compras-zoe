@@ -1,23 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://wdzqpvyjqbcgbhajmeek.supabase.co';
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenFwdnlqcWJjZ2JoYWptZWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5MDgwNjYsImV4cCI6MjA1MDQ4NDA2Nn0.u8tn2VB26Y1UlYD32jcCn6jvjfWdZe5kCnEhzYb42SY';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export default async function handler(req: any, res: any) {
+module.exports = async (req: any, res: any) => {
   try {
-    // Verificar método HTTP
-    if (req.method !== 'GET') {
-      res.status(405).json({ error: 'Método não permitido' });
-      return;
-    }
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Verificar token de autenticação
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Token de acesso requerido. Faça login para continuar.' });
-      return;
+      return res.status(401).json({ error: 'Token de acesso requerido. Faça login para continuar.' });
     }
 
     const token = authHeader.substring(7);
@@ -25,81 +18,94 @@ export default async function handler(req: any, res: any) {
     // Validar token com Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      res.status(401).json({ error: 'Token inválido' });
-      return;
+      return res.status(401).json({ error: 'Token inválido' });
     }
 
-    // Buscar vendas
-    const { data: vendas, error: vendasError } = await supabase
-      .from('vendas')
-      .select('*');
-    
-    if (vendasError) {
-      res.status(500).json({ error: vendasError.message });
-      return;
-    }
+    if (req.method === 'GET') {
+      // Se tem id na URL, buscar venda específica
+      if (req.query.id) {
+        const { data, error } = await supabase
+          .from('vendas')
+          .select(`
+            *,
+            produtos_venda (
+              *,
+              produto:produtos (*)
+            ),
+            cliente:clientes (*)
+          `)
+          .eq('id', req.query.id)
+          .single();
+        
+        if (error) {
+          return res.status(404).json({ error: error.message });
+        }
+        return res.json(data);
+      }
 
-    // Buscar clientes
-    const { data: clientes, error: clientesError } = await supabase
-      .from('clientes')
-      .select('telefone, nome');
-
-    if (clientesError) {
-      res.status(500).json({ error: clientesError.message });
-      return;
-    }
-
-    // Buscar produtos de todas as vendas
-    const { data: todosProdutos, error: produtosError } = await supabase
-      .from('produtos_venda')
-      .select('*');
-
-    if (produtosError) {
-      res.status(500).json({ error: produtosError.message });
-      return;
-    }
-
-    // Buscar todos os pagamentos para recalcular valores pagos corretamente
-    const { data: todosPagamentos, error: pagamentosError } = await supabase
-      .from('pagamentos')
-      .select('*');
-
-    if (pagamentosError) {
-      res.status(500).json({ error: pagamentosError.message });
-      return;
-    }
-
-    // Combinar os dados
-    const vendasComClientes = vendas?.map(venda => {
-      const cliente = clientes?.find(c => c.telefone === venda.cliente_telefone);
+      // Buscar todas as vendas
+      const { data, error } = await supabase
+        .from('vendas')
+        .select(`
+          *,
+          produtos_venda (
+            *,
+            produto:produtos (*)
+          ),
+          cliente:clientes (*)
+        `)
+        .order('data_venda', { ascending: false });
       
-      // Calcular valor pago real da tabela pagamentos
-      const pagamentosVenda = todosPagamentos?.filter(p => p.venda_id === venda.id) || [];
-      const valorPagoReal = pagamentosVenda.reduce((sum, p) => sum + p.valor, 0);
-      
-      // Buscar produtos desta venda e mapear para o formato esperado pelo frontend
-      const produtosVenda = todosProdutos?.filter(p => p.venda_id === venda.id) || [];
-      const totalProdutos = produtosVenda.length;
-      
-      // Mapear produtos para o formato que o frontend espera
-      const produtosFormatados = produtosVenda.map(produto => ({
-        nome_produto: produto.nome_produto,
-        marca: produto.marca,
-        quantidade: produto.quantidade || 1
-      }));
-      
-      return {
-        ...venda,
-        cliente_nome: cliente?.nome || 'Cliente não encontrado',
-        valor_pago: valorPagoReal, // Sobrescrever com valor real da tabela pagamentos
-        total_produtos: totalProdutos,
-        produtos: produtosFormatados // Produtos formatados para o frontend
-      };
-    });
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+      return res.json(data);
+    }
 
-    res.json(vendasComClientes || []);
+    if (req.method === 'POST') {
+      const { data, error } = await supabase
+        .from('vendas')
+        .insert([req.body])
+        .select()
+        .single();
+      
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(201).json(data);
+    }
+
+    if (req.method === 'PUT') {
+      const { id } = req.query;
+      const { data, error } = await supabase
+        .from('vendas')
+        .update(req.body)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.json(data);
+    }
+
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      const { error } = await supabase
+        .from('vendas')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(204).end();
+    }
+
+    return res.status(405).json({ error: 'Método não permitido' });
   } catch (error) {
-    console.error('Erro ao buscar vendas:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('Erro:', error);
+    return res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
-} 
+}; 
