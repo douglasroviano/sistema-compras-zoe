@@ -9,19 +9,14 @@ module.exports = async (req, res) => {
   }
 
   try {
-    console.log('=== INÍCIO DA FUNÇÃO CLIENTES ===');
+    console.log('=== INÍCIO DA FUNÇÃO PRODUTOS VENDA ===');
     console.log('Method:', req.method);
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
     
     // Check environment variables
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     
     console.log('Environment check:');
-    console.log('- VITE_SUPABASE_URL:', !!process.env.VITE_SUPABASE_URL);
-    console.log('- SUPABASE_URL:', !!process.env.SUPABASE_URL);
-    console.log('- VITE_SUPABASE_ANON_KEY:', !!process.env.VITE_SUPABASE_ANON_KEY);
-    console.log('- SUPABASE_ANON_KEY:', !!process.env.SUPABASE_ANON_KEY);
     console.log('- Final supabaseUrl:', !!supabaseUrl);
     console.log('- Final supabaseKey:', !!supabaseKey);
 
@@ -29,10 +24,7 @@ module.exports = async (req, res) => {
       console.error('Missing Supabase credentials');
       return res.status(500).json({ 
         error: 'Configuração do servidor incompleta',
-        details: {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseKey
-        }
+        details: { hasUrl: !!supabaseUrl, hasKey: !!supabaseKey }
       });
     }
 
@@ -107,37 +99,56 @@ module.exports = async (req, res) => {
       try {
         console.log('Executing GET request...');
         
-        if (req.query.telefone) {
-          console.log('Getting specific client by phone:', req.query.telefone);
+        if (req.query.venda_id) {
+          console.log('Getting products by sale ID:', req.query.venda_id);
           const { data, error } = await supabase
-            .from('clientes')
+            .from('produtos_venda')
             .select('*')
-            .eq('telefone', req.query.telefone)
+            .eq('venda_id', req.query.venda_id);
+          
+          if (error) {
+            console.error('Error fetching products by sale ID:', error);
+            return res.status(500).json({ error: error.message });
+          }
+          
+          console.log('Products found successfully, count:', data?.length || 0);
+          return res.json(data || []);
+        }
+
+        if (req.query.id) {
+          console.log('Getting specific product by ID:', req.query.id);
+          const { data, error } = await supabase
+            .from('produtos_venda')
+            .select('*')
+            .eq('id', req.query.id)
             .single();
           
           if (error) {
-            console.error('Error fetching specific client:', error);
+            console.error('Error fetching specific product:', error);
             return res.status(404).json({ error: error.message });
           }
           
-          console.log('Client found successfully');
+          console.log('Product found successfully');
           return res.json(data);
         }
 
-        console.log('Getting all clients...');
-        const { data, error } = await supabase.from('clientes').select('*');
+        console.log('Getting all products...');
+        const { data, error } = await supabase
+          .from('produtos_venda')
+          .select('*')
+          .order('created_at', { ascending: false });
         
         if (error) {
-          console.error('Error fetching clients:', error);
+          console.error('Error fetching products:', error);
           return res.status(500).json({ error: error.message });
         }
         
-        console.log('Clients fetched successfully, count:', data?.length || 0);
+        console.log('Products fetched successfully, count:', data?.length || 0);
         return res.json(data || []);
 
       } catch (getError) {
         console.error('Exception during GET:', getError);
-        return res.status(500).json({ error: 'Erro ao buscar clientes', details: getError.message });
+        return res.status(500).json({ error: 'Erro ao buscar produtos de venda', details: getError.message });
       }
     }
 
@@ -147,75 +158,75 @@ module.exports = async (req, res) => {
         console.log('Request body:', JSON.stringify(req.body, null, 2));
         
         const { data, error } = await supabase
-          .from('clientes')
+          .from('produtos_venda')
           .insert([req.body])
           .select()
           .single();
         
         if (error) {
-          console.error('Error inserting client:', error);
+          console.error('Error inserting product:', error);
           return res.status(400).json({ error: error.message });
         }
         
-        console.log('Client created successfully');
+        console.log('Product created successfully');
         return res.status(201).json(data);
 
       } catch (postError) {
         console.error('Exception during POST:', postError);
-        return res.status(500).json({ error: 'Erro ao criar cliente', details: postError.message });
+        return res.status(500).json({ error: 'Erro ao criar produto de venda', details: postError.message });
       }
     }
 
     if (req.method === 'PUT') {
       try {
         console.log('Executing PUT request...');
-        const { telefone } = req.query;
-        console.log('Updating client with phone:', telefone);
+        const { id } = req.query;
+        console.log('Updating product with ID:', id);
         console.log('Update data:', JSON.stringify(req.body, null, 2));
         
         const { data, error } = await supabase
-          .from('clientes')
+          .from('produtos_venda')
           .update(req.body)
-          .eq('telefone', telefone)
+          .eq('id', id)
           .select()
           .single();
         
         if (error) {
-          console.error('Error updating client:', error);
+          console.error('Error updating product:', error);
           return res.status(400).json({ error: error.message });
         }
         
-        console.log('Client updated successfully');
+        console.log('Product updated successfully');
         return res.json(data);
 
       } catch (putError) {
         console.error('Exception during PUT:', putError);
-        return res.status(500).json({ error: 'Erro ao atualizar cliente', details: putError.message });
+        return res.status(500).json({ error: 'Erro ao atualizar produto de venda', details: putError.message });
       }
     }
 
     if (req.method === 'DELETE') {
       try {
         console.log('Executing DELETE request...');
-        const { telefone } = req.query;
-        console.log('Deleting client with phone:', telefone);
+        const { id } = req.query;
+        console.log('Deleting product with ID:', id);
         
         const { error } = await supabase
-          .from('clientes')
+          .from('produtos_venda')
           .delete()
-          .eq('telefone', telefone);
+          .eq('id', id);
         
         if (error) {
-          console.error('Error deleting client:', error);
+          console.error('Error deleting product:', error);
           return res.status(400).json({ error: error.message });
         }
         
-        console.log('Client deleted successfully');
+        console.log('Product deleted successfully');
         return res.status(204).end();
 
       } catch (deleteError) {
         console.error('Exception during DELETE:', deleteError);
-        return res.status(500).json({ error: 'Erro ao deletar cliente', details: deleteError.message });
+        return res.status(500).json({ error: 'Erro ao deletar produto de venda', details: deleteError.message });
       }
     }
 
@@ -223,7 +234,7 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Método não permitido' });
 
   } catch (error) {
-    console.error('=== ERRO GERAL NA FUNÇÃO ===');
+    console.error('=== ERRO GERAL NA FUNÇÃO PRODUTOS VENDA ===');
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
