@@ -103,10 +103,7 @@ module.exports = async (req, res) => {
           console.log('Getting payments by client phone:', req.query.cliente_telefone);
           const { data, error } = await supabase
             .from('pagamentos')
-            .select(`
-              *,
-              clientes!inner(nome, telefone)
-            `)
+            .select('*')
             .eq('cliente_telefone', req.query.cliente_telefone)
             .order('data_pagamento', { ascending: false });
           
@@ -123,10 +120,7 @@ module.exports = async (req, res) => {
           console.log('Getting specific payment by ID:', req.query.id);
           const { data, error } = await supabase
             .from('pagamentos')
-            .select(`
-              *,
-              clientes!inner(nome, telefone)
-            `)
+            .select('*')
             .eq('id', req.query.id)
             .single();
           
@@ -142,11 +136,7 @@ module.exports = async (req, res) => {
         console.log('Getting all payments...');
         const { data, error } = await supabase
           .from('pagamentos')
-          .select(`
-            *,
-            clientes!inner(nome, telefone)
-          `)
-          .order('data_pagamento', { ascending: false });
+          .select('*');
         
         if (error) {
           console.error('Error fetching payments:', error);
