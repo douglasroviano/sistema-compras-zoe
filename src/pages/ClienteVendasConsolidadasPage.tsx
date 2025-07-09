@@ -181,17 +181,17 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
           produtosMap[chave].quantidade_total += quantidade;
           produtosMap[chave].valor_total_compra += valorCompra;
           produtosMap[chave].valor_total_venda += valorVenda;
-          produtosMap[chave].vendas_onde_aparece.push(venda.id);
+          produtosMap[chave].vendas_onde_aparece.push(venda.id || '');
         } else {
           produtosMap[chave] = {
             nome_produto: produto.nome_produto || '',
-            marca: produto.marca,
-            cor: produto.cor,
-            tamanho: produto.tamanho,
+            marca: produto.marca || undefined,
+            cor: produto.cor || undefined,
+            tamanho: produto.tamanho || undefined,
             quantidade_total: quantidade,
             valor_total_compra: valorCompra,
             valor_total_venda: valorVenda,
-            vendas_onde_aparece: [venda.id]
+            vendas_onde_aparece: [venda.id || '']
           };
         }
       });

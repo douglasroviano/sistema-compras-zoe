@@ -51,7 +51,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [, setUploadingFoto] = useState(false);
+
 
   useEffect(() => {
     if (produto) {
@@ -155,7 +155,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
           ...formData,
         };
         
-        await onSave(dataToSubmit);
+        await onSave(dataToSubmit as Produto);
       } catch (error) {
         console.error('Erro ao salvar produto:', error);
         setError('Erro ao salvar produto');
@@ -360,9 +360,6 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
           ) : (
             <FotoUpload
               onUpload={handleFotoUpload}
-              loading={uploadingFoto}
-              accept="image/*"
-              maxSize={5 * 1024 * 1024} // 5MB
             />
           )}
         </Grid>
@@ -400,7 +397,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
             <Button
               type="submit"
               variant="contained"
-              disabled={loading || uploadingFoto}
+              disabled={loading}
               sx={{ minWidth: 120 }}
             >
               {loading ? 'Salvando...' : produto ? 'Atualizar' : 'Salvar'}
