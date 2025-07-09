@@ -3,8 +3,7 @@ import type { Cliente } from '../types/cliente';
 import { supabase } from './supabaseClient';
 
 // URL da API baseada no ambiente
-const API_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
 
 // Criar instância do axios
 const api = axios.create({
