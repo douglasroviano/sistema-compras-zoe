@@ -1,0 +1,614 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design System - Nexus CRM Style */
+:root {
+  /* Cores base */
+  --background: #111313;
+  --foreground: #ededed;
+  
+  /* Cores de destaque */
+  --primary: #98E5DD;
+  --primary-foreground: #111313;
+  
+  /* Cores secundárias */
+  --secondary: #EEB58F;
+  --secondary-foreground: #111313;
+  
+  /* Cores de interface */
+  --card: #1a1d1e;
+  --card-foreground: #ededed;
+  --border: #2a2a2a;
+  --input: #1a1a1a;
+  --ring: #98E5DD;
+  
+  /* Cores de estado */
+  --success: #98E5DD;
+  --warning: #EEB58F;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #ffffff;
+  
+  /* Cores de texto */
+  --muted: #6c7275;
+  --muted-foreground: #a1a1aa;
+  --accent: #1e293b;
+  --accent-foreground: #ededed;
+  
+  /* Cores de menu */
+  --sidebar: #0e1011;
+  --sidebar-foreground: #ededed;
+  --sidebar-item-hover: #1a1d1e;
+  --sidebar-item-active: #98E5DD;
+}
+
+/* Reset e base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* Componentes customizados */
+@layer components {
+  /* Layout principal */
+  .app {
+    @apply flex min-h-screen bg-[#111313];
+  }
+
+  /* Header moderno */
+  .header {
+    @apply fixed top-0 left-0 right-0 z-50 bg-[#0e1011] border-b border-[#2a2a2a] px-6 py-4;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .header-content {
+    @apply flex items-center justify-between max-w-7xl mx-auto;
+  }
+
+  .header-title {
+    @apply text-xl font-bold text-white;
+  }
+
+  .header-actions {
+    @apply flex items-center gap-4;
+  }
+
+  /* Sidebar moderna */
+  .sidebar {
+    @apply fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-[#0e1011] border-r border-[#2a2a2a] overflow-y-auto z-40;
+  }
+
+  .sidebar-nav {
+    @apply p-4 space-y-2;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-[#1a1d1e] hover:text-[#98E5DD] transition-all duration-200 group;
+  }
+  
+  .nav-link.active {
+    @apply bg-[#98E5DD]/10 text-[#98E5DD] border border-[#98E5DD]/20;
+  }
+
+  .nav-icon {
+    @apply text-lg transition-transform duration-200 group-hover:scale-110;
+  }
+
+  /* Conteúdo principal */
+  .main-content {
+    @apply ml-64 mt-16 p-6 min-h-[calc(100vh-4rem)] bg-[#111313];
+  }
+
+  /* Cards modernos */
+  .card {
+    @apply bg-[#1a1d1e] border border-[#2a2a2a] rounded-xl shadow-lg backdrop-blur-sm;
+  }
+
+  .card-header {
+    @apply p-6 border-b border-[#2a2a2a];
+  }
+
+  .card-title {
+    @apply text-xl font-semibold text-white flex items-center gap-2;
+  }
+
+  .card-description {
+    @apply text-gray-400 mt-1;
+  }
+
+  .card-content {
+    @apply p-6;
+  }
+
+  /* Botões modernos */
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply bg-[#98E5DD] text-[#111313] hover:bg-[#98E5DD]/90 hover:shadow-lg hover:shadow-[#98E5DD]/20;
+  }
+  
+  .btn-secondary {
+    @apply bg-[#EEB58F] text-[#111313] hover:bg-[#EEB58F]/90 hover:shadow-lg hover:shadow-[#EEB58F]/20;
+  }
+
+  .btn-outline {
+    @apply border border-[#98E5DD] text-[#98E5DD] hover:bg-[#98E5DD] hover:text-[#111313];
+  }
+
+  .btn-ghost {
+    @apply text-gray-300 hover:bg-[#1a1d1e] hover:text-white;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+
+  /* Formulários modernos */
+  .form-group {
+    @apply space-y-2;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-300;
+  }
+
+  .form-input {
+    @apply w-full px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:border-[#98E5DD] focus:ring-2 focus:ring-[#98E5DD]/20 focus:outline-none transition-all duration-200;
+  }
+  
+  .form-select {
+    @apply w-full px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#98E5DD] focus:ring-2 focus:ring-[#98E5DD]/20 focus:outline-none transition-all duration-200 cursor-pointer;
+  }
+
+  .form-textarea {
+    @apply w-full px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:border-[#98E5DD] focus:ring-2 focus:ring-[#98E5DD]/20 focus:outline-none transition-all duration-200 resize-vertical min-h-[100px];
+  }
+
+  /* Tabelas modernas */
+  .table-container {
+    @apply overflow-hidden rounded-xl border border-[#2a2a2a];
+  }
+
+  .table {
+    @apply w-full border-collapse;
+  }
+
+  .table th {
+    @apply bg-[#0e1011] px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-[#2a2a2a];
+  }
+  
+  .table td {
+    @apply px-6 py-4 border-b border-[#2a2a2a] text-gray-300;
+  }
+  
+  .table tr {
+    @apply hover:bg-[#1a1d1e] transition-colors duration-150;
+  }
+
+  /* Estatísticas/Métricas */
+  .stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8;
+  }
+
+  .stat-card {
+    @apply bg-[#1a1d1e] border border-[#2a2a2a] rounded-xl p-6 hover:border-[#98E5DD]/30 transition-all duration-200;
+  }
+
+  .stat-icon {
+    @apply w-12 h-12 rounded-lg flex items-center justify-center text-xl mb-4;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold text-white mb-1;
+  }
+
+  .stat-label {
+    @apply text-sm text-gray-400;
+  }
+
+  /* Modais */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50;
+  }
+
+  .modal {
+    @apply bg-[#1a1d1e] border border-[#2a2a2a] rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto;
+  }
+
+  .modal-header {
+    @apply p-6 border-b border-[#2a2a2a] flex items-center justify-between;
+  }
+
+  .modal-title {
+    @apply text-xl font-semibold text-white;
+  }
+
+  .modal-close {
+    @apply text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-[#2a2a2a];
+  }
+
+  .modal-content {
+    @apply p-6;
+  }
+
+  .modal-footer {
+    @apply p-6 border-t border-[#2a2a2a] flex justify-end gap-3;
+  }
+
+  /* Alertas */
+  .alert {
+    @apply px-4 py-3 rounded-lg border mb-4 flex items-start gap-3;
+  }
+  
+  .alert-success {
+    @apply bg-[#98E5DD]/10 text-[#98E5DD] border-[#98E5DD]/20;
+  }
+  
+  .alert-error {
+    @apply bg-red-500/10 text-red-400 border-red-500/20;
+  }
+  
+  .alert-warning {
+    @apply bg-[#EEB58F]/10 text-[#EEB58F] border-[#EEB58F]/20;
+  }
+
+  /* Spinner/Loading */
+  .spinner {
+    @apply w-6 h-6 border-2 border-[#2a2a2a] border-t-[#98E5DD] rounded-full animate-spin;
+  }
+
+  .spinner.w-4 {
+    @apply w-4 h-4 border-2;
+  }
+
+  .spinner.w-8 {
+    @apply w-8 h-8 border-2;
+  }
+
+  /* Estados vazios */
+  .empty-state {
+    @apply text-center py-12;
+  }
+
+  .empty-state-icon {
+    @apply text-6xl mb-4 opacity-50;
+  }
+
+  .empty-state-title {
+    @apply text-lg font-medium text-white mb-2;
+  }
+
+  .empty-state-description {
+    @apply text-gray-400 mb-4;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply bg-[#98E5DD]/10 text-[#98E5DD] border border-[#98E5DD]/20;
+  }
+  
+  .badge-warning {
+    @apply bg-[#EEB58F]/10 text-[#EEB58F] border border-[#EEB58F]/20;
+  }
+  
+  .badge-error {
+    @apply bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+
+  .badge-info {
+    @apply bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  }
+
+  /* Animações */
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slideInRight {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  .animate-slideInBottom {
+    animation: slideInBottom 0.3s ease-out;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1;
+  }
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInBottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .sidebar {
+    @apply -translate-x-full;
+  }
+  
+  .sidebar.open {
+    @apply translate-x-0;
+  }
+  
+  .main-content {
+    @apply ml-0;
+  }
+}
+
+/* Animações suaves */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Estilos para cards com hover */
+.hover-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Estilos para botões com efeito hover */
+.hover-button {
+  transition: all 0.2s ease;
+}
+
+.hover-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+
+/* Estilos para inputs com foco aprimorado */
+.MuiTextField-root .MuiOutlinedInput-root {
+  transition: all 0.2s ease;
+}
+
+.MuiTextField-root .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #1976d2;
+}
+
+.MuiTextField-root .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+/* Estilos para tabelas responsivas */
+.MuiTableContainer-root {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.MuiTableHead-root .MuiTableRow-root {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+}
+
+.MuiTableBody-root .MuiTableRow-root {
+  transition: background-color 0.2s ease;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background-color: #f8f9fa !important;
+}
+
+/* Estilos para chips */
+.MuiChip-root {
+  font-weight: 500 !important;
+  border-radius: 16px !important;
+}
+
+/* Estilos para o drawer */
+.MuiDrawer-paper {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  border-right: 1px solid #e0e0e0 !important;
+}
+
+/* Estilos para cards de estatísticas */
+.stats-card {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 4px 20px rgba(25, 118, 210, 0.3);
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(25, 118, 210, 0.4);
+}
+
+/* Estilos para o FAB */
+.MuiFab-root {
+  box-shadow: 0 4px 20px rgba(25, 118, 210, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.MuiFab-root:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 25px rgba(25, 118, 210, 0.4) !important;
+}
+
+/* Estilos para alertas */
+.MuiAlert-root {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Estilos para o dialog */
+.MuiDialog-paper {
+  border-radius: 16px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .MuiContainer-root {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .MuiTableContainer-root {
+    border-radius: 8px !important;
+  }
+  
+  .stats-card {
+    padding: 16px;
+  }
+}
+
+/* Estilos para skeleton loading */
+.MuiSkeleton-root {
+  border-radius: 8px !important;
+}
+
+/* Estilos para botões primários */
+.MuiButton-containedPrimary {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.MuiButton-containedPrimary:hover {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Estilos para ícones */
+.MuiSvgIcon-root {
+  transition: all 0.2s ease;
+}
+
+/* Estilos para o app bar */
+.MuiAppBar-root {
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Estilos para loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Utilitários */
+.text-gradient {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Print styles */
+@media print {
+  .MuiFab-root,
+  .MuiAppBar-root,
+  .MuiDrawer-root {
+    display: none !important;
+  }
+}
