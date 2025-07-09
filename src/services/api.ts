@@ -36,6 +36,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      // NÃO deslogar se for erro na API de lucro (temporário)
+      if (error.config?.url?.includes('/vendas/lucro')) {
+        console.error('Erro 401 na API de lucro - não deslogando');
+        return Promise.reject(error);
+      }
+      
       // Token expirado ou inválido, redirecionar para login
       console.error('Token expirado ou inválido');
       await supabase.auth.signOut();
