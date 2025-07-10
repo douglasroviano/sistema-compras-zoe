@@ -178,11 +178,10 @@ const ProdutosPage: React.FC = () => {
   const getLucroBRL = (produto: Produto) => {
     if (!produto.preco_compra || !produto.preco_venda || !produto.dolar_agora) return 0;
 
-    const imposto = produto.imposto_percentual || 7;
-    const custoRealUSD = produto.preco_compra * (1 + imposto / 100);
-    const custoRealBRL = custoRealUSD * produto.dolar_agora; // Usar cotação histórica do produto
+    const imposto = produto.imposto_percentual || 0; // Se não tem no banco, é 0%
+    const custoComImposto = produto.preco_compra * (1 + imposto / 100);
 
-    return produto.preco_venda - custoRealBRL;
+    return produto.preco_venda - custoComImposto;
   };
 
   const getLucroUSD = (produto: Produto) => {
@@ -196,12 +195,11 @@ const ProdutosPage: React.FC = () => {
     if (!produto.preco_compra || !produto.preco_venda || !produto.dolar_agora) return 0;
 
     // Calcular custo real em BRL (preço USD + imposto) * cotação histórica
-    const imposto = produto.imposto_percentual || 7; // 7% padrão
-    const custoRealUSD = produto.preco_compra * (1 + imposto / 100);
-    const custoRealBRL = custoRealUSD * produto.dolar_agora; // Usar cotação histórica do produto
+    const imposto = produto.imposto_percentual || 0; // 7% padrão
+    const custoComImposto = produto.preco_compra * (1 + imposto / 100);
 
     // Calcular margem sobre VENDA: (venda BRL - custo real BRL) / venda BRL
-    return ((produto.preco_venda - custoRealBRL) / produto.preco_venda) * 100;
+    return ((produto.preco_venda - custoComImposto) / produto.preco_venda) * 100;
   };
 
   const getMargemColor = (margem: number): 'success' | 'warning' | 'error' => {

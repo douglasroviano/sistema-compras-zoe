@@ -19,10 +19,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      console.log('🔥 API /vendas/lucro - Calculando dados de lucro...');
-      
-      // TODO: Implementar autenticação adequada
-      // Por enquanto, permitir acesso (dados agregados apenas)
+      console.log('🔥 API /vendas/lucro - Calculando dados DINÂMICOS do banco...');
       
       // Buscar todas as vendas
       const { data: vendas, error: vendasError } = await supabase
@@ -34,47 +31,69 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: vendasError.message });
       }
 
-      // Buscar todos os produtos vendidos
+      // Buscar todos os produtos vendidos COM TODAS as informações necessárias
       const { data: produtos, error: produtosError } = await supabase
         .from('produtos_venda')
-        .select('venda_id, preco_compra_usd, preco_venda, imposto');
+        .select('venda_id, preco_compra, preco_venda, imposto_percentual, dolar_agora, quantidade');
       
       if (produtosError) {
         console.error('❌ Erro ao buscar produtos:', produtosError);
         return res.status(500).json({ error: produtosError.message });
       }
 
-      // Cotação atual USD->BRL (aproximada)
-      const cotacaoUSD = 5.43;
+      console.log(`📊 Processando ${produtos?.length || 0} produtos de ${vendas?.length || 0} vendas`);
 
-      // Calcular totais
+      // ELIMINAR valores hardcoded - calcular tudo dinamicamente
       let custoTotalUSD = 0;
+      let custoTotalBRL = 0;
       let vendaTotalBRL = 0;
+      let vendaTotalUSD = 0;
       let totalProdutos = 0;
+      let somaCotacoesPonderadas = 0;
+      let somaQuantidades = 0;
 
-      // Somar custos dos produtos (em USD)
-      produtos.forEach(produto => {
-        const precoCompraUSD = produto.preco_compra_usd || 0;
-        const imposto = produto.imposto || 0;
-        const custoComImposto = precoCompraUSD + (precoCompraUSD * imposto / 100);
-        custoTotalUSD += custoComImposto;
-        totalProdutos++;
+      // Calcular TUDO baseado nos dados reais do banco
+      produtos?.forEach(produto => {
+        const quantidade = produto.quantidade || 1;
+        const precoCompraUSD = produto.preco_compra || 0;
+        const precoVendaBRL = produto.preco_venda || 0;
+        
+        // Usar imposto REAL do banco ou padrão definido no banco
+        const impostoPercentual = produto.imposto_percentual || 0; // Se não tem no banco, é 0
+        
+        // Usar cotação REAL do banco (histórica da venda)
+        const cotacaoProduto = produto.dolar_agora;
+        
+        // SÓ processar produtos que têm cotação histórica
+        if (cotacaoProduto && cotacaoProduto > 0) {
+          // Calcular custo real (gôndola + imposto) - DINÂMICO
+          const custoRealUSD = precoCompraUSD * (1 + impostoPercentual / 100);
+          const custoRealBRL = custoRealUSD * cotacaoProduto;
+          
+          // Calcular venda em USD usando cotação histórica do produto
+          const vendaProdutoUSD = precoVendaBRL / cotacaoProduto;
+          
+          // Acumular totais
+          custoTotalUSD += custoRealUSD * quantidade;
+          custoTotalBRL += custoRealBRL * quantidade;
+          vendaTotalBRL += precoVendaBRL * quantidade;
+          vendaTotalUSD += vendaProdutoUSD * quantidade;
+          totalProdutos += quantidade;
+          
+          // Para cálculo de cotação média ponderada
+          somaCotacoesPonderadas += cotacaoProduto * quantidade;
+          somaQuantidades += quantidade;
+        }
       });
 
-      // Somar vendas totais (em BRL)
-      vendas.forEach(venda => {
-        vendaTotalBRL += venda.valor_total || 0;
-      });
-
-      // Converter valores
-      const custoTotalBRL = custoTotalUSD * cotacaoUSD;
-      const vendaTotalUSD = vendaTotalBRL / cotacaoUSD;
+      // Calcular cotação média ponderada dos produtos vendidos
+      const cotacaoMediaPonderada = somaQuantidades > 0 ? somaCotacoesPonderadas / somaQuantidades : 0;
       
-      // Calcular lucros
+      // Calcular lucros dinâmicos
       const lucroTotalUSD = vendaTotalUSD - custoTotalUSD;
       const lucroTotalBRL = vendaTotalBRL - custoTotalBRL;
       
-      // Calcular margem
+      // Calcular margem dinâmica
       const margemPercentual = vendaTotalBRL > 0 ? (lucroTotalBRL / vendaTotalBRL) * 100 : 0;
 
       const resultado = {
@@ -85,11 +104,12 @@ export default async function handler(req, res) {
         vendaTotalBRL: Number(vendaTotalBRL.toFixed(2)),
         vendaTotalUSD: Number(vendaTotalUSD.toFixed(2)),
         margemPercentual: Number(margemPercentual.toFixed(1)),
-        totalVendas: vendas.length,
-        totalProdutos: totalProdutos
+        totalVendas: vendas?.length || 0,
+        totalProdutos: totalProdutos,
+        cotacaoMediaPonderada: Number(cotacaoMediaPonderada.toFixed(4)) // Para debug
       };
 
-      console.log('✅ Dados de lucro calculados:', resultado);
+      console.log('✅ Dados DINÂMICOS calculados do banco:', resultado);
       return res.status(200).json(resultado);
 
     } catch (error) {

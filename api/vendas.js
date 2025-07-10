@@ -100,73 +100,70 @@ module.exports = async (req, res) => {
         console.log('Executing GET request...');
         
         // Rota para lucro de vendas
-        if (req.url && req.url.includes('/lucro')) {
-          console.log('Getting lucro data...');
-          
+        if (req.query.lucro === 'true') {
           try {
-            // Buscar todas as vendas com produtos
-            const { data: vendas, error: vendasError } = await supabase
-              .from('vendas')
-              .select(`
-                id,
-                valor_total,
-                status_venda,
-                data_venda
-              `);
+            console.log('📊 Calculando lucro com dados DINÂMICOS do banco...');
             
-            if (vendasError) {
-              console.error('Error fetching vendas for lucro:', vendasError);
-              return res.status(500).json({ error: vendasError.message });
-            }
-
-            // Buscar produtos de venda
+            // Buscar produtos das vendas COM TODOS OS DADOS
             const { data: produtos, error: produtosError } = await supabase
               .from('produtos_venda')
-              .select(`
-                venda_id,
-                preco_compra,
-                preco_venda,
-                quantidade,
-                dolar_agora,
-                imposto_percentual
-              `);
-            
+              .select('*');
+
             if (produtosError) {
               console.error('Error fetching produtos for lucro:', produtosError);
               return res.status(500).json({ error: produtosError.message });
             }
 
-            // Calcular métricas
+            console.log(`Processando ${produtos?.length || 0} produtos para cálculo dinâmico`);
+
             let custoTotalUSD = 0;
             let custoTotalBRL = 0;
             let vendaTotalBRL = 0;
             let vendaTotalUSD = 0;
             let totalProdutos = 0;
+            let somaCotacoesPonderadas = 0;
+            let somaQuantidades = 0;
             
-            produtos.forEach(produto => {
+            // ELIMINAR valores hardcoded - usar APENAS dados do banco
+            produtos?.forEach(produto => {
               const quantidade = produto.quantidade || 1;
               const precoCompra = produto.preco_compra || 0;
               const precoVenda = produto.preco_venda || 0;
-              const cotacao = produto.dolar_agora || 5.20;
-              const imposto = produto.imposto_percentual || 7;
               
-              // Custo real USD (com imposto)
-              const custoRealUSD = precoCompra * (1 + imposto / 100);
-              const custoRealBRL = custoRealUSD * cotacao;
+              // Usar imposto REAL do banco (SEM fallback hardcoded)
+              const imposto = produto.imposto_percentual || 0; // Se não existe no banco, é 0
               
-              custoTotalUSD += custoRealUSD * quantidade;
-              custoTotalBRL += custoRealBRL * quantidade;
-              vendaTotalBRL += precoVenda * quantidade;
-              totalProdutos += quantidade;
+              // Usar cotação REAL do banco (histórica da venda)
+              const cotacaoProduto = produto.dolar_agora;
+              
+              // SÓ processar se tem cotação histórica válida
+              if (cotacaoProduto && cotacaoProduto > 0) {
+                // Custo real USD (com imposto) - DINÂMICO
+                const custoRealUSD = precoCompra * (1 + imposto / 100);
+                const custoRealBRL = custoRealUSD * cotacaoProduto;
+                
+                // Venda em USD usando cotação histórica
+                const vendaProdutoUSD = precoVenda / cotacaoProduto;
+                
+                custoTotalUSD += custoRealUSD * quantidade;
+                custoTotalBRL += custoRealBRL * quantidade;
+                vendaTotalBRL += precoVenda * quantidade;
+                vendaTotalUSD += vendaProdutoUSD * quantidade;
+                totalProdutos += quantidade;
+                
+                // Para cotação média ponderada
+                somaCotacoesPonderadas += cotacaoProduto * quantidade;
+                somaQuantidades += quantidade;
+              }
             });
             
-            // Converter venda total para USD
-            vendaTotalUSD = vendaTotalBRL / 5.20; // Cotação média
-            
-            // Calcular lucro
+            // Calcular lucro DINAMICAMENTE
             const lucroTotalUSD = vendaTotalUSD - custoTotalUSD;
             const lucroTotalBRL = vendaTotalBRL - custoTotalBRL;
             const margemPercentual = custoTotalBRL > 0 ? ((lucroTotalBRL / custoTotalBRL) * 100) : 0;
+            
+            // Cotação média ponderada dos produtos (para referência)
+            const cotacaoMediaPonderada = somaQuantidades > 0 ? somaCotacoesPonderadas / somaQuantidades : 0;
             
             const lucroData = {
               lucroTotalUSD: Number(lucroTotalUSD.toFixed(2)),
@@ -176,11 +173,12 @@ module.exports = async (req, res) => {
               vendaTotalBRL: Number(vendaTotalBRL.toFixed(2)),
               vendaTotalUSD: Number(vendaTotalUSD.toFixed(2)),
               margemPercentual: Number(margemPercentual.toFixed(1)),
-              totalVendas: vendas.length,
-              totalProdutos: totalProdutos
+              totalVendas: vendas?.length || 0,
+              totalProdutos: totalProdutos,
+              cotacaoMediaPonderada: Number(cotacaoMediaPonderada.toFixed(4)) // Para debug
             };
             
-            console.log('Lucro data calculated successfully:', lucroData);
+            console.log('✅ Lucro calculado DINAMICAMENTE do banco:', lucroData);
             return res.json(lucroData);
             
           } catch (lucroError) {

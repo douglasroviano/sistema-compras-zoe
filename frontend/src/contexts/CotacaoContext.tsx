@@ -16,7 +16,8 @@ interface CotacaoProviderProps {
 const CotacaoContext = createContext<CotacaoContextData>({} as CotacaoContextData);
 
 export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) => {
-  const [cotacao, setCotacao] = useState<number>(5.20); // Fallback padrão
+  // ELIMINAR valor hardcoded - sistema inicia sem cotação até obter do banco/API
+  const [cotacao, setCotacao] = useState<number>(0); // Inicia zerado até obter cotação real
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +29,7 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
       const novaCotacao = response.data.cotacao;
       
       // Só atualiza se a cotação mudou ou é a primeira vez
-      if (cotacao === 5.20 || cotacao !== novaCotacao) {
+      if (cotacao === 0 || cotacao !== novaCotacao) {
         setCotacao(novaCotacao);
         
         // Registra o momento da atualização da cotação
@@ -50,8 +51,8 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
     } catch (error) {
       console.error('Erro ao buscar cotação:', error);
       
-      // Só define fallback se não tiver cotação ainda
-      if (cotacao === 5.20 && ultimaAtualizacao === '') {
+      // Só define timestamp de erro se não tiver cotação ainda
+      if (cotacao === 0 && ultimaAtualizacao === '') {
         const agora = new Date();
         const timestampBrasil = agora.toLocaleString('pt-BR', {
           timeZone: 'America/Sao_Paulo',
@@ -62,7 +63,7 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
           minute: '2-digit',
           second: '2-digit'
         });
-        setUltimaAtualizacao(`${timestampBrasil} (Fallback)`);
+        setUltimaAtualizacao(`${timestampBrasil} (Erro ao obter cotação)`);
       }
       
       setLoading(false);
@@ -94,4 +95,4 @@ export const useCotacao = (): CotacaoContextData => {
     throw new Error('useCotacao deve ser usado dentro de CotacaoProvider');
   }
   return context;
-}; 
+};

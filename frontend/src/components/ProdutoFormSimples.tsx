@@ -76,7 +76,7 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
         foto_url: produto.foto_url || '',
         observacoes: produto.observacoes || '',
         marca: produto.marca || '',
-        imposto_percentual: produto.imposto_percentual?.toString() || '7',
+        imposto_percentual: produto.imposto_percentual?.toString() || '',
         dolar_agora: produto.dolar_agora?.toString() || '',
         quantidade: produto.quantidade?.toString() || '1',
         is_novo: produto.is_novo || false,

@@ -188,7 +188,8 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
         descricao: produto.descricao || '',
         foto_url: produto.foto_url || '',
         observacoes: produto.observacoes || '',
-        imposto_percentual: produto.imposto_percentual || 7 // Incluir imposto
+        // ELIMINAR valor hardcoded - usar APENAS dados do banco
+        imposto_percentual: produto.imposto_percentual || 0 // Se não tem no banco, é 0%
       }));
       
       setProdutos(produtosFormatados);
@@ -236,7 +237,8 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
               nome_produto: '',
               preco_compra: 0,
               preco_venda: 0,
-              imposto_percentual: 7, // Padrão para produto novo
+              // ELIMINAR valor hardcoded - produtos novos iniciam sem imposto definido
+              imposto_percentual: 0, // Será definido pelo usuário se necessário
               is_novo: true
             };
           } else {
@@ -251,7 +253,8 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
               cor: produtoSelecionado?.cor || '',
               tamanho: produtoSelecionado?.tamanho || '',
               marca: produtoSelecionado?.marca || '',
-              imposto_percentual: produtoSelecionado?.imposto_percentual || 7,
+              // ELIMINAR valor hardcoded - usar APENAS dados do banco
+              imposto_percentual: produtoSelecionado?.imposto_percentual || 0,
               is_novo: false
             };
           }

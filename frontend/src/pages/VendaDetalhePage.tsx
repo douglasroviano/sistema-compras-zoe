@@ -147,33 +147,43 @@ const VendaDetalhePage: React.FC = () => {
     
     venda.produtos.forEach(produto => {
       const custoUSD = (produto.preco_compra || 0) * (produto.quantidade || 1);
-      const impostoPercentual = (produto.imposto_percentual || 7) / 100;
+      
+      // ELIMINAR valor hardcoded - usar APENAS dados do banco
+      const impostoPercentual = produto.imposto_percentual ? produto.imposto_percentual / 100 : 0;
       const custoComImpostoUnitario = custoUSD * (1 + impostoPercentual);
       
-      // Usar cotação histórica do produto (dolar_agora) se disponível, senão usar cotação atual
-      const cotacaoUsada = produto.dolar_agora || cotacao || 5.20;
-      const custoComImpostoBRLProduto = custoComImpostoUnitario * cotacaoUsada;
+      // ELIMINAR valor hardcoded - usar APENAS cotação histórica do produto
+      const cotacaoUsada = produto.dolar_agora;
       
-      const vendaBRL = (produto.preco_venda || 0) * (produto.quantidade || 1);
-      
-      custoTotalUSD += custoUSD;
-      custoComImpostoUSD += custoComImpostoUnitario;
-      custoComImpostoBRL += custoComImpostoBRLProduto;
-      margemTotalBRL += vendaBRL - custoComImpostoBRLProduto;
+      // SÓ processar se tem cotação histórica válida
+      if (cotacaoUsada && cotacaoUsada > 0) {
+        const custoComImpostoBRLProduto = custoComImpostoUnitario * cotacaoUsada;
+        const vendaBRL = (produto.preco_venda || 0) * (produto.quantidade || 1);
+        
+        custoTotalUSD += custoUSD;
+        custoComImpostoUSD += custoComImpostoUnitario;
+        custoComImpostoBRL += custoComImpostoBRLProduto;
+        margemTotalBRL += vendaBRL - custoComImpostoBRLProduto;
+      }
     });
     
     const vendaTotalBRL = venda.valor_total || 0;
     
-    // Usar cotação média ponderada dos produtos para conversão final
-    let cotacaoMedia = cotacao || 5.20;
-    if (venda.produtos.length > 0) {
-      const cotacaoValida = venda.produtos.find(p => p.dolar_agora)?.dolar_agora;
-      if (cotacaoValida) {
-        cotacaoMedia = cotacaoValida;
-      }
-    }
+    // ELIMINAR valor hardcoded - calcular cotação média dos produtos válidos
+    let cotacaoMedia = 0;
+    let countCotacoes = 0;
     
-    const vendaTotalUSD = vendaTotalBRL / cotacaoMedia;
+    venda.produtos.forEach(produto => {
+      if (produto.dolar_agora && produto.dolar_agora > 0) {
+        cotacaoMedia += produto.dolar_agora;
+        countCotacoes++;
+      }
+    });
+    
+    cotacaoMedia = countCotacoes > 0 ? cotacaoMedia / countCotacoes : 0;
+    
+    // SÓ calcular conversão USD se temos cotação válida
+    const vendaTotalUSD = cotacaoMedia > 0 ? vendaTotalBRL / cotacaoMedia : 0;
     
     // Calcular margem sobre VENDA (fórmula correta)
     const margemPercentual = vendaTotalBRL > 0 ? (margemTotalBRL / vendaTotalBRL) * 100 : 0;

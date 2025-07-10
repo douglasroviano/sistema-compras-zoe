@@ -6,31 +6,31 @@ import {
   Card,
   CardContent,
   Grid,
+  Chip,
+  IconButton,
   Button,
+  Alert,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Chip,
-  Alert,
-  Skeleton,
-  IconButton
+  TableRow
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   ShoppingCart as ShoppingCartIcon,
-  Payment as PaymentIcon,
-  AccountBalance as AccountBalanceIcon,
+  AttachMoney as MoneyIcon,
   TrendingUp as TrendingUpIcon,
-  CalendarToday as CalendarIcon
+  Receipt as ReceiptIcon,
+  Payment as PaymentIcon
 } from '@mui/icons-material';
+
 import type { Cliente } from '../types/cliente';
 import type { Venda } from '../types/venda';
 import type { ProdutoVenda } from '../types/produtoVenda';
 import { getCliente, getVendas, getProdutos } from '../services/api';
-import { useCotacao } from '../contexts/CotacaoContext';
 
 interface VendaCompleta extends Venda {
   produtos: ProdutoVenda[];
@@ -50,7 +50,8 @@ interface ProdutoConsolidado {
 const ClienteVendasConsolidadasPage: React.FC = () => {
   const { telefone } = useParams<{ telefone: string }>();
   const navigate = useNavigate();
-  const { cotacao } = useCotacao();
+  // Usar cotação do contexto global (não mais necessária para cálculos)
+  // const { cotacao } = useCotacao();
   
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [vendas, setVendas] = useState<VendaCompleta[]>([]);
@@ -120,25 +121,36 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
     let vendaTotalBRL = 0;
     let margemTotalBRL = 0;
     let totalProdutos = 0;
+    let somaCotacoesPonderadas = 0;
+    let somaQuantidades = 0;
     
     vendas.forEach(venda => {
       venda.produtos.forEach(produto => {
         const quantidade = produto.quantidade || 1;
         const custoUSD = (produto.preco_compra || 0) * quantidade;
-        const impostoPercentual = (produto.imposto_percentual || 7) / 100;
+        
+        // ELIMINAR valor hardcoded - usar APENAS dados do banco
+        const impostoPercentual = produto.imposto_percentual ? produto.imposto_percentual / 100 : 0;
         const custoComImpostoUSD = custoUSD * (1 + impostoPercentual);
         
-        // Usar cotação histórica do produto se disponível
-        const cotacaoUsada = produto.dolar_agora || cotacao || 5.20;
-        const custoComImpostoBRL = custoComImpostoUSD * cotacaoUsada;
+        // ELIMINAR valor hardcoded - usar APENAS cotação histórica do produto
+        const cotacaoUsada = produto.dolar_agora;
         
-        const vendaBRL = (produto.preco_venda || 0) * quantidade;
-        
-        custoTotalUSD += custoUSD;
-        custoTotalBRL += custoComImpostoBRL;
-        vendaTotalBRL += vendaBRL;
-        margemTotalBRL += vendaBRL - custoComImpostoBRL;
-        totalProdutos += quantidade;
+        // SÓ processar se tem cotação histórica válida
+        if (cotacaoUsada && cotacaoUsada > 0) {
+          const custoComImpostoBRL = custoComImpostoUSD * cotacaoUsada;
+          const vendaBRL = (produto.preco_venda || 0) * quantidade;
+          
+          custoTotalUSD += custoUSD;
+          custoTotalBRL += custoComImpostoBRL;
+          vendaTotalBRL += vendaBRL;
+          margemTotalBRL += vendaBRL - custoComImpostoBRL;
+          totalProdutos += quantidade;
+          
+          // Para cotação média ponderada
+          somaCotacoesPonderadas += cotacaoUsada * quantidade;
+          somaQuantidades += quantidade;
+        }
       });
     });
 
@@ -147,7 +159,10 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
     const valorPendenteTotal = valorTotalVendas - valorPagoTotal;
     
     const margemPercentual = vendaTotalBRL > 0 ? (margemTotalBRL / vendaTotalBRL) * 100 : 0;
-    const custoTotalComImpostoUSD = custoTotalBRL / (cotacao || 5.20);
+    
+    // ELIMINAR valor hardcoded - calcular usando cotação média ponderada real
+    const cotacaoMediaPonderada = somaQuantidades > 0 ? somaCotacoesPonderadas / somaQuantidades : 0;
+    const custoTotalComImpostoUSD = cotacaoMediaPonderada > 0 ? custoTotalBRL / cotacaoMediaPonderada : 0;
 
     return {
       totalVendas: vendas.length,
@@ -157,7 +172,7 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
       custoTotalBRL,
       vendaTotalBRL,
       margemTotalBRL,
-      margemTotalUSD: margemTotalBRL / (cotacao || 5.20),
+      margemTotalUSD: cotacaoMediaPonderada > 0 ? margemTotalBRL / cotacaoMediaPonderada : 0,
       margemPercentual,
       valorTotalVendas,
       valorPagoTotal,
@@ -311,7 +326,7 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
             <Card sx={{ bgcolor: 'info.main', color: 'white', height: '100%' }}>
               <CardContent sx={{ py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AccountBalanceIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                  <MoneyIcon sx={{ fontSize: 36, mr: 1.5 }} />
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.0rem' }}>
                       {formatUSD(analise.custoTotalComImpostoUSD)}
@@ -448,7 +463,7 @@ const ClienteVendasConsolidadasPage: React.FC = () => {
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <CalendarIcon color="primary" />
+                <ReceiptIcon color="primary" />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Venda {index + 1} - {formatDate(venda.data_venda)}
                 </Typography>
