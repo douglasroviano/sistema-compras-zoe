@@ -1,3 +1,4 @@
+// Commit forçado para atualizar deploy no Vercel
 import axios from 'axios';
 import type { Cliente } from '../types/cliente';
 import { supabase } from './supabaseClient';
