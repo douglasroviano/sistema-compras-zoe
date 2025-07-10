@@ -35,7 +35,7 @@ import axios from 'axios';
 
 // Configuração da API
 const api = axios.create({
-  baseURL: 'http://localhost:4000/api',
+  baseURL: '/api',
   timeout: 10000,
 });
 

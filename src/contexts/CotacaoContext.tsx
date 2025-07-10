@@ -22,7 +22,7 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
 
   const atualizarCotacao = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+      const API_URL = '/api';
       const response = await axios.get(`${API_URL}/produtos-venda/cotacao-dolar`);
       
       const novaCotacao = response.data.cotacao;
