@@ -6,6 +6,7 @@ import {
   Button, 
   Card, 
   CardContent, 
+  Grid, 
   Dialog, 
   DialogTitle, 
   DialogContent, 
@@ -66,27 +67,27 @@ const ClientesPage: React.FC = () => {
       setLoading(true);
       
       // Buscar clientes
-      const { getClientes } = await import('../services/api');
-      const clientesResponse = await getClientes();
-      const clientesData = clientesResponse.data;
+      const clientesResponse = await fetch('/api/clientes');
+      if (!clientesResponse.ok) {
+        throw new Error('Erro ao carregar clientes');
+      }
+      const clientesData = await clientesResponse.json();
       setClientes(clientesData);
 
       // Buscar vendas
-      const { getVendas } = await import('../services/api');
-      const vendasResponse = await getVendas();
-      const vendasData: Venda[] = vendasResponse.data;
+      const vendasResponse = await fetch('/api/vendas');
+      const vendasData: Venda[] = await vendasResponse.json();
 
-      // Filtrar vendas (excluir apenas canceladas)
-      const vendasValidas = vendasData.filter(venda => 
-        venda.status_venda !== 'cancelada'
+      // Filtrar apenas vendas ativas (pendente e despachada)
+      const vendasAtivas = vendasData.filter(venda => 
+        venda.status_venda === 'pendente' || venda.status_venda === 'despachada'
       );
 
       // Calcular valores para cada cliente
       const clientesComCalculos: ClienteComVendas[] = clientesData.map((cliente: Cliente) => {
-        const vendasCliente = vendasValidas.filter(venda => venda.cliente_telefone === cliente.telefone);
+        const vendasCliente = vendasAtivas.filter(venda => venda.cliente_telefone === cliente.telefone);
         
         const valorTotal = vendasCliente.reduce((sum, venda) => sum + (venda.valor_total || 0), 0);
-        // Agora o valor_pago já vem calculado corretamente do backend (da tabela pagamentos)
         const valorPago = vendasCliente.reduce((sum, venda) => sum + (venda.valor_pago || 0), 0);
         const valorPendente = valorTotal - valorPago;
         const totalCompras = vendasCliente.length;
@@ -112,12 +113,22 @@ const ClientesPage: React.FC = () => {
 
   const handleSave = async (clienteData: Cliente) => {
     try {
-      const { createCliente, updateCliente } = await import('../services/api');
+      const url = editingCliente 
+        ? `/api/clientes/${editingCliente.telefone}`
+        : '/api/clientes';
       
-      if (editingCliente) {
-        await updateCliente(editingCliente.telefone, clienteData);
-      } else {
-        await createCliente(clienteData);
+      const method = editingCliente ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clienteData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar cliente');
       }
 
       await fetchClientes();
@@ -131,8 +142,14 @@ const ClientesPage: React.FC = () => {
   const handleDelete = async (telefone: string) => {
     if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
       try {
-        const { deleteCliente } = await import('../services/api');
-        await deleteCliente(telefone);
+        const response = await fetch(`/api/clientes/${telefone}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao excluir cliente');
+        }
+
         await fetchClientes();
       } catch (error) {
         console.error('Erro ao excluir cliente:', error);
@@ -188,23 +205,19 @@ const ClientesPage: React.FC = () => {
           <Skeleton variant="text" width={200} height={40} />
           <Skeleton variant="text" width={300} height={24} />
         </Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+        <Grid container spacing={2}>
           {[...Array(6)].map((_, index) => (
-            <Skeleton variant="rectangular" height={200} key={index} />
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={index}>
+              <Skeleton variant="rectangular" height={200} />
+            </Grid>
           ))}
-        </Box>
+        </Grid>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ 
-      p: { xs: 2, md: 0 },
-      pl: { xs: 2, md: 1 },
-      pr: { xs: 2, md: 2 },
-      pt: { xs: 2, md: 1 },
-      pb: { xs: 2, md: 2 }
-    }}>
+    <Box sx={{ maxWidth: '100%', width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
@@ -215,86 +228,79 @@ const ClientesPage: React.FC = () => {
         </Typography>
 
         {/* Stats Cards */}
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: '1fr 1fr', 
-            sm: '1fr 1fr', 
-            md: '1fr 1fr 1fr 1fr' 
-          }, 
-          gap: { xs: 1.5, sm: 2 }, 
-          mb: 3 
-        }}>
-          <Card sx={{ bgcolor: 'primary.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
-                <PersonIcon sx={{ fontSize: { xs: 28, sm: 36 }, mr: { xs: 0, sm: 1.5 }, mb: { xs: 0.5, sm: 0 } }} />
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
-                    {clientes.length}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                    Total de Clientes
-                  </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'primary.main', color: 'white', height: '100%' }}>
+              <CardContent sx={{ py: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <PersonIcon sx={{ fontSize: 36, mr: 1.5 }} />
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      {clientes.length}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                      Total de Clientes
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'success.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
-                <LocationIcon sx={{ fontSize: { xs: 28, sm: 40 }, mr: { xs: 0, sm: 2 }, mb: { xs: 0.5, sm: 0 } }} />
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Typography variant="h4" sx={{ fontWeight: 600, fontSize: { xs: '1.2rem', sm: '2rem' } }}>
-                    {new Set(clientes.map(c => c.cidade)).size}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                    Cidades Atendidas
-                  </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'success.main', color: 'white' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <LocationIcon sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                      {new Set(clientes.map(c => c.cidade)).size}
+                    </Typography>
+                    <Typography variant="body2">
+                      Cidades Atendidas
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'info.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
-                <ShoppingCartIcon sx={{ fontSize: { xs: 28, sm: 40 }, mr: { xs: 0, sm: 2 }, mb: { xs: 0.5, sm: 0 } }} />
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Typography variant="h4" sx={{ fontWeight: 600, fontSize: { xs: '1.2rem', sm: '2rem' } }}>
-                    {clientesComVendas.reduce((sum, c) => sum + c.totalCompras, 0)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                    Compras Ativas
-                  </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'info.main', color: 'white' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <ShoppingCartIcon sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                      {clientesComVendas.reduce((sum, c) => sum + c.totalCompras, 0)}
+                    </Typography>
+                    <Typography variant="body2">
+                      Compras Ativas
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card sx={{ bgcolor: 'warning.main', color: 'white', height: '100%' }}>
-            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
-                <PaymentIcon sx={{ fontSize: { xs: 28, sm: 40 }, mr: { xs: 0, sm: 2 }, mb: { xs: 0.5, sm: 0 } }} />
-                <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '0.9rem', sm: '1.25rem' } }}>
-                    {formatCurrency(clientesComVendas.reduce((sum, c) => sum + c.valorPendente, 0))}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                    Total Pendente
-                  </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ bgcolor: 'warning.main', color: 'white' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <PaymentIcon sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {formatCurrency(clientesComVendas.reduce((sum, c) => sum + c.valorPendente, 0))}
+                    </Typography>
+                    <Typography variant="body2">
+                      Total Pendente
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
 
         {/* Search and Add Button */}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: { xs: 1, sm: 2 }, 
-          alignItems: 'center', 
-          mb: 3,
-          flexDirection: { xs: 'column', sm: 'row' }
-        }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
           <TextField
             placeholder="Buscar por nome, telefone ou cidade..."
             value={searchTerm}
@@ -306,11 +312,7 @@ const ClientesPage: React.FC = () => {
                 </InputAdornment>
               ),
             }}
-            sx={{ 
-              flexGrow: 1, 
-              width: { xs: '100%', sm: 'auto' },
-              maxWidth: { xs: 'none', sm: 400 }
-            }}
+            sx={{ flexGrow: 1, maxWidth: 400 }}
           />
           <Button
             variant="contained"
@@ -319,9 +321,7 @@ const ClientesPage: React.FC = () => {
             sx={{ 
               height: 56,
               px: 3,
-              fontWeight: 600,
-              width: { xs: '100%', sm: 'auto' },
-              minWidth: { sm: 'auto' }
+              fontWeight: 600
             }}
           >
             Novo Cliente
@@ -339,18 +339,18 @@ const ClientesPage: React.FC = () => {
       {/* Clients Table */}
       <Card sx={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
         <TableContainer>
-          <Table sx={{ width: '100%' }}>
+          <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600, width: { xs: '35%', sm: 'auto' } }}>Cliente</TableCell>
-                <TableCell sx={{ fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}>Contato</TableCell>
-                <TableCell sx={{ fontWeight: 600, display: { xs: 'none', md: 'table-cell' } }}>Localização</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: { xs: '15%', sm: 'auto' } }} align="center">Compras</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: { xs: '20%', sm: 'auto' } }}>V. Total</TableCell>
-                <TableCell sx={{ fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}>V. Pago</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: { xs: '20%', sm: 'auto' } }}>V. Pendente</TableCell>
-                <TableCell sx={{ fontWeight: 600, display: { xs: 'none', md: 'table-cell' } }}>Entrega</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600, width: { xs: '10%', sm: 'auto' } }}>Ações</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Contato</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Localização</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Compras Ativas</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Valor Total</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Valor Pago</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Valor Pendente</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Entrega</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -385,7 +385,6 @@ const ClientesPage: React.FC = () => {
                             fontWeight: 600,
                             color: 'primary.main',
                             cursor: 'pointer',
-                            fontSize: { xs: '0.875rem', sm: '1rem' },
                             '&:hover': {
                               textDecoration: 'underline'
                             }
@@ -394,15 +393,12 @@ const ClientesPage: React.FC = () => {
                         >
                           {cliente.nome}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
-                          📱 {cliente.telefone}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', md: 'none' } }}>
-                          📍 {cliente.cidade}, {cliente.estado}
+                        <Typography variant="caption" color="text.secondary">
+                          Tel: {cliente.telefone}
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                    <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <PhoneIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2">
@@ -410,7 +406,7 @@ const ClientesPage: React.FC = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <TableCell>
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           {cliente.cidade}, {cliente.estado}
@@ -421,37 +417,41 @@ const ClientesPage: React.FC = () => {
                       </Box>
                     </TableCell>
                     <TableCell align="center">
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
                         {cliente.totalCompras}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                      <Typography variant="caption" color="text.secondary">
                         compras
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}>
-                        {formatCurrency(cliente.valorTotal)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                        {formatCurrency(cliente.valorPago)}
-                      </Typography>
+                      {cliente.valorTotal > 0 && (
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {formatCurrency(cliente.valorTotal)}
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          fontWeight: 600, 
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          whiteSpace: 'nowrap',
-                          color: cliente.valorPendente > 0 ? 'error.main' : 'success.main'
-                        }}
-                      >
-                        {formatCurrency(cliente.valorPendente)}
-                      </Typography>
+                      {cliente.valorPago > 0 && (
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                          {formatCurrency(cliente.valorPago)}
+                        </Typography>
+                      )}
                     </TableCell>
-                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <TableCell>
+                      {cliente.valorPendente > 0 && (
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            color: 'error.main'
+                          }}
+                        >
+                          {formatCurrency(cliente.valorPendente)}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Chip
                         label={cliente.preferencia_entrega}
                         color={getPreferenciaColor(cliente.preferencia_entrega)}
@@ -460,44 +460,32 @@ const ClientesPage: React.FC = () => {
                       />
                     </TableCell>
                     <TableCell align="center">
-                      <Box sx={{ display: 'flex', gap: { xs: 0.2, sm: 1 }, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                         <Tooltip title="Ver perfil do cliente">
                           <IconButton
                             size="small"
                             onClick={() => handleViewCliente(cliente.telefone)}
-                            sx={{ 
-                              color: 'info.main',
-                              p: { xs: 0.25, sm: 1 },
-                              '& .MuiSvgIcon-root': { fontSize: { xs: '0.875rem', sm: '1.25rem' } }
-                            }}
+                            sx={{ color: 'info.main' }}
                           >
-                            <VisibilityIcon />
+                            <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Editar cliente">
                           <IconButton
                             size="small"
                             onClick={() => handleEdit(cliente)}
-                            sx={{ 
-                              color: 'primary.main',
-                              p: { xs: 0.25, sm: 1 },
-                              '& .MuiSvgIcon-root': { fontSize: { xs: '0.875rem', sm: '1.25rem' } }
-                            }}
+                            sx={{ color: 'primary.main' }}
                           >
-                            <EditIcon />
+                            <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Excluir cliente">
                           <IconButton
                             size="small"
                             onClick={() => handleDelete(cliente.telefone)}
-                            sx={{ 
-                              color: 'error.main',
-                              p: { xs: 0.25, sm: 1 },
-                              '& .MuiSvgIcon-root': { fontSize: { xs: '0.875rem', sm: '1.25rem' } }
-                            }}
+                            sx={{ color: 'error.main' }}
                           >
-                            <DeleteIcon />
+                            <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Box>

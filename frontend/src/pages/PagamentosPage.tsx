@@ -29,8 +29,7 @@ import {
   MenuItem,
   Tooltip,
   DialogActions,
-  Stack,
-  Autocomplete
+  Stack
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -50,40 +49,24 @@ import {
 } from '@mui/icons-material';
 import type { Pagamento } from '../types/pagamento';
 import type { Venda } from '../types/venda';
-import type { Cliente } from '../types/cliente';
-import { getPagamentos, getVendas, getClientes, createPagamento, updatePagamento, deletePagamento, createPagamentoPorCliente } from '../services/api';
-
-interface ProdutoSimples {
-  nome_produto: string;
-}
-
-interface VendaComProdutos extends Venda {
-  produtos?: ProdutoSimples[];
-  cliente_nome?: string;
-  total_produtos?: number;
-}
 
 interface PagamentoComDetalhes extends Pagamento {
   cliente_nome?: string;
   cliente_telefone?: string;
   venda_valor_total?: number;
   venda_valor_pago?: number;
-  venda_data_vencimento?: string;
-  status_pagamento?: 'pago' | 'pendente' | 'atrasado' | 'vencido';
+  status_pagamento?: 'pago' | 'pendente' | 'atrasado';
 }
 
 const PagamentosPage: React.FC = () => {
   const [pagamentos, setPagamentos] = useState<PagamentoComDetalhes[]>([]);
-  const [vendas, setVendas] = useState<VendaComProdutos[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+  const [vendas, setVendas] = useState<Venda[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [openDialogCliente, setOpenDialogCliente] = useState(false);
   const [editingPagamento, setEditingPagamento] = useState<PagamentoComDetalhes | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pago' | 'pendente' | 'atrasado' | 'vencido'>('todos');
+  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pago' | 'pendente' | 'atrasado'>('todos');
   const [filtroMetodo, setFiltroMetodo] = useState<'todos' | 'pix' | 'cartao' | 'dinheiro' | 'transferencia'>('todos');
 
   // Form states
@@ -95,26 +78,20 @@ const PagamentosPage: React.FC = () => {
     data_pagamento: new Date().toISOString().split('T')[0]
   });
 
-  // Form states para pagamento por cliente
-  const [formDataCliente, setFormDataCliente] = useState({
-    cliente_telefone: '',
-    valor: '',
-    metodo: '',
-    observacoes: '',
-    data_pagamento: new Date().toISOString().split('T')[0]
-  });
-
   useEffect(() => {
     fetchPagamentos();
     fetchVendas();
-    fetchClientes();
   }, []);
 
   const fetchPagamentos = async () => {
     try {
       setLoading(true);
-      const response = await getPagamentos();
-      setPagamentos(response.data);
+      const response = await fetch('/api/pagamentos');
+      if (!response.ok) {
+        throw new Error('Erro ao carregar pagamentos');
+      }
+      const data = await response.json();
+      setPagamentos(data);
       setError(null);
     } catch (error) {
       console.error('Erro ao buscar pagamentos:', error);
@@ -126,33 +103,38 @@ const PagamentosPage: React.FC = () => {
 
   const fetchVendas = async () => {
     try {
-      const response = await getVendas();
-      setVendas(response.data);
+      const response = await fetch('/api/vendas');
+      if (!response.ok) {
+        throw new Error('Erro ao carregar vendas');
+      }
+      const data = await response.json();
+      setVendas(data);
     } catch (error) {
       console.error('Erro ao buscar vendas:', error);
     }
   };
 
-  const fetchClientes = async () => {
-    try {
-      const response = await getClientes();
-      setClientes(response.data);
-    } catch (error) {
-      console.error('Erro ao buscar clientes:', error);
-    }
-  };
-
   const handleSave = async () => {
     try {
-      const dadosPagamento = {
-        ...formData,
-        valor: parseFloat(formData.valor)
-      };
+      const url = editingPagamento 
+        ? `/api/pagamentos/${editingPagamento.id}`
+        : '/api/pagamentos';
+      
+      const method = editingPagamento ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          valor: parseFloat(formData.valor)
+        }),
+      });
 
-      if (editingPagamento) {
-        await updatePagamento(editingPagamento.id!, dadosPagamento);
-      } else {
-        await createPagamento(dadosPagamento);
+      if (!response.ok) {
+        throw new Error('Erro ao salvar pagamento');
       }
 
       await fetchPagamentos();
@@ -166,7 +148,14 @@ const PagamentosPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este pagamento?')) {
       try {
-        await deletePagamento(id);
+        const response = await fetch(`/api/pagamentos/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao excluir pagamento');
+        }
+
         await fetchPagamentos();
       } catch (error) {
         console.error('Erro ao excluir pagamento:', error);
@@ -199,50 +188,6 @@ const PagamentosPage: React.FC = () => {
     });
   };
 
-  const handleCloseDialogCliente = () => {
-    setOpenDialogCliente(false);
-    setClienteSelecionado(null);
-    setFormDataCliente({
-      cliente_telefone: '',
-      valor: '',
-      metodo: '',
-      observacoes: '',
-      data_pagamento: new Date().toISOString().split('T')[0]
-    });
-  };
-
-  const handleClienteChange = (cliente: Cliente | null) => {
-    setClienteSelecionado(cliente);
-    setFormDataCliente(prev => ({
-      ...prev,
-      cliente_telefone: cliente?.telefone || ''
-    }));
-  };
-
-  const handleSaveCliente = async () => {
-    try {
-      const dadosPagamento = {
-        ...formDataCliente,
-        valor: parseFloat(formDataCliente.valor)
-      };
-
-      const response = await createPagamentoPorCliente(dadosPagamento);
-      const result = response.data;
-      console.log('Pagamento por cliente salvo:', result);
-      
-      // Exibir mensagem de sucesso detalhada
-      if (result.detalhes) {
-        alert(`Pagamento distribuído com sucesso!\n\nValor pago: R$ ${result.detalhes.valor_total_pago.toFixed(2)}\nValor distribuído: R$ ${result.detalhes.valor_distribuido.toFixed(2)}\nVendas afetadas: ${result.detalhes.vendas_afetadas}\n${result.detalhes.valor_sobra > 0 ? `Sobra: R$ ${result.detalhes.valor_sobra.toFixed(2)}` : ''}`);
-      }
-
-      await fetchPagamentos();
-      handleCloseDialogCliente();
-    } catch (error) {
-      console.error('Erro ao salvar pagamento por cliente:', error);
-      setError('Erro ao salvar pagamento por cliente');
-    }
-  };
-
   const formatCurrency = (value?: number) => {
     if (!value) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
@@ -255,32 +200,11 @@ const PagamentosPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getStatusPagamento = (pagamento: PagamentoComDetalhes): 'pago' | 'pendente' | 'atrasado' | 'vencido' => {
-    const valorTotal = pagamento.venda_valor_total || 0;
-    const valorPago = pagamento.venda_valor_pago || 0;
-    const valorDevendo = valorTotal - valorPago;
+  const getStatusPagamento = (pagamento: PagamentoComDetalhes): 'pago' | 'pendente' | 'atrasado' => {
+    if (pagamento.valor > 0) return 'pago';
     
-
-    
-    // Se está quitado, sempre pago
-    if (valorDevendo <= 0) return 'pago';
-    
-    // Se tem data de vencimento e está vencida
-    if (pagamento.venda_data_vencimento) {
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0); // Zerar horas para comparação apenas de data
-      
-      const dataVencimento = new Date(pagamento.venda_data_vencimento);
-      dataVencimento.setHours(0, 0, 0, 0); // Zerar horas para comparação apenas de data
-      
-      if (dataVencimento <= hoje && valorDevendo > 0) {
-        return 'vencido';
-      }
-    }
-    
-    // Lógica antiga para pagamentos sem data de vencimento
-    const dataPagamento = new Date(pagamento.data_pagamento);
     const hoje = new Date();
+    const dataPagamento = new Date(pagamento.data_pagamento);
     const diasAtraso = Math.floor((hoje.getTime() - dataPagamento.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diasAtraso > 7) return 'atrasado';
@@ -292,7 +216,6 @@ const PagamentosPage: React.FC = () => {
       case 'pago': return 'success';
       case 'pendente': return 'warning';
       case 'atrasado': return 'error';
-      case 'vencido': return 'error';
       default: return 'warning';
     }
   };
@@ -302,7 +225,6 @@ const PagamentosPage: React.FC = () => {
       case 'pago': return <PaidIcon />;
       case 'pendente': return <PendingIcon />;
       case 'atrasado': return <WarningIcon />;
-      case 'vencido': return <WarningIcon />;
       default: return <PendingIcon />;
     }
   };
@@ -332,45 +254,23 @@ const PagamentosPage: React.FC = () => {
     return true;
   });
 
-  // Estatísticas - evitar duplicação de vendas
-  const vendasUnicas = pagamentos.reduce((acc, pagamento) => {
-    if (!acc.find(v => v.venda_id === pagamento.venda_id)) {
-      acc.push({
-        venda_id: pagamento.venda_id,
-        venda_valor_total: pagamento.venda_valor_total || 0,
-        venda_valor_pago: pagamento.venda_valor_pago || 0,
-        venda_data_vencimento: pagamento.venda_data_vencimento
-      });
-    }
-    return acc;
-  }, [] as Array<{venda_id: string, venda_valor_total: number, venda_valor_pago: number, venda_data_vencimento?: string}>);
-
+  // Estatísticas
   const estatisticas = {
     totalPagamentos: pagamentos.length,
     valorRecebido: pagamentos.reduce((sum, p) => sum + (p.valor || 0), 0),
-    valorTotalVendas: vendasUnicas.reduce((sum, v) => sum + v.venda_valor_total, 0),
-    valorPendente: vendasUnicas.reduce((sum, v) => sum + (v.venda_valor_total - v.venda_valor_pago), 0),
+    valorTotalVendas: pagamentos.reduce((sum, p) => sum + (p.venda_valor_total || 0), 0),
+    valorPendente: pagamentos.reduce((sum, p) => {
+      const total = p.venda_valor_total || 0;
+      const pago = p.venda_valor_pago || 0;
+      return sum + (total - pago);
+    }, 0),
     pagamentosPendentes: pagamentos.filter(p => getStatusPagamento(p) === 'pendente').length,
-    // Contar VENDAS vencidas (não pagamentos) - apenas uma por venda_id
-    vendasVencidas: vendasUnicas.filter(venda => {
-      // Pegar qualquer pagamento desta venda para verificar status
-      const pagamentoExemplo = pagamentos.find(p => p.venda_id === venda.venda_id);
-      return pagamentoExemplo ? getStatusPagamento(pagamentoExemplo) === 'vencido' : false;
-    }).length,
     pagamentosAtrasados: pagamentos.filter(p => getStatusPagamento(p) === 'atrasado').length,
   };
 
   if (loading) {
     return (
-      <Box sx={{ 
-        maxWidth: '100%', 
-        width: '100%',
-        p: { xs: 2, md: 0 },
-        pl: { xs: 2, md: 1 },
-        pr: { xs: 2, md: 2 },
-        pt: { xs: 2, md: 1 },
-        pb: { xs: 2, md: 2 }
-      }}>
+      <Box sx={{ maxWidth: '100%', width: '100%' }}>
         <Box sx={{ mb: 2 }}>
           <Skeleton variant="text" width={200} height={40} />
           <Skeleton variant="text" width={300} height={24} />
@@ -387,15 +287,7 @@ const PagamentosPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ 
-      maxWidth: '100%', 
-      width: '100%',
-      p: { xs: 2, md: 0 },
-      pl: { xs: 2, md: 1 },
-      pr: { xs: 2, md: 2 },
-      pt: { xs: 2, md: 1 },
-      pb: { xs: 2, md: 2 }
-    }}>
+    <Box sx={{ maxWidth: '100%', width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
@@ -413,11 +305,11 @@ const PagamentosPage: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <ReceiptIcon sx={{ fontSize: 36, mr: 1.5 }} />
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, fontSize: '1.1rem' }}>
-                      {formatCurrency(estatisticas.valorTotalVendas)}
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      {estatisticas.totalPagamentos}
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                      Valor Total Vendas
+                      Total de Pagamentos
                     </Typography>
                   </Box>
                 </Box>
@@ -468,10 +360,10 @@ const PagamentosPage: React.FC = () => {
                   <WarningIcon sx={{ fontSize: 36, mr: 1.5 }} />
                   <Box>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      {estatisticas.vendasVencidas}
+                      {estatisticas.pagamentosAtrasados}
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                      Vencidos
+                      Atrasados
                     </Typography>
                   </Box>
                 </Box>
@@ -501,14 +393,13 @@ const PagamentosPage: React.FC = () => {
             <Select
               value={filtroStatus}
               label="Status"
-              onChange={(e) => setFiltroStatus(e.target.value as 'todos' | 'pago' | 'pendente' | 'atrasado' | 'vencido')}
+              onChange={(e) => setFiltroStatus(e.target.value as 'todos' | 'pago' | 'pendente' | 'atrasado')}
               startAdornment={<FilterIcon sx={{ mr: 1 }} />}
             >
               <MenuItem value="todos">Todos</MenuItem>
               <MenuItem value="pago">Pagos</MenuItem>
               <MenuItem value="pendente">Pendentes</MenuItem>
               <MenuItem value="atrasado">Atrasados</MenuItem>
-              <MenuItem value="vencido">Vencidos</MenuItem>
             </Select>
           </FormControl>
 
@@ -539,21 +430,6 @@ const PagamentosPage: React.FC = () => {
             }}
           >
             Novo Pagamento
-          </Button>
-
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<PersonIcon />}
-            onClick={() => setOpenDialogCliente(true)}
-            sx={{ 
-              height: 56,
-              px: 2.5,
-              fontWeight: 600,
-              minWidth: 'auto'
-            }}
-          >
-            Pagamento por Cliente
           </Button>
         </Box>
       </Box>
@@ -682,12 +558,7 @@ const PagamentosPage: React.FC = () => {
                       <TableCell>
                         <Chip
                           icon={getStatusIcon(status)}
-                          label={
-                            status === 'pago' ? 'Pago' : 
-                            status === 'pendente' ? 'Pendente' : 
-                            status === 'vencido' ? 'Vencido' : 
-                            'Atrasado'
-                          }
+                          label={status === 'pago' ? 'Pago' : status === 'pendente' ? 'Pendente' : 'Atrasado'}
                           color={getStatusColor(status)}
                           size="small"
                           sx={{ fontWeight: 500 }}
@@ -762,26 +633,12 @@ const PagamentosPage: React.FC = () => {
                 label="Venda"
                 onChange={(e) => setFormData({ ...formData, venda_id: e.target.value })}
               >
-                {vendas.map((venda) => {
-                  // Gerar resumo dos produtos para identificar a venda
-                  const produtosSummary = venda.produtos && venda.produtos.length > 0 
-                                         ? venda.produtos.slice(0, 2).map((p: ProdutoSimples) => p.nome_produto).join(', ') + 
-                      (venda.produtos.length > 2 ? ` +${venda.produtos.length - 2} mais` : '')
-                    : 'Sem produtos';
-                  
-                  return (
-                    <MenuItem key={venda.id} value={venda.id}>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {venda.cliente_nome} - {formatCurrency(venda.valor_total)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          📦 {produtosSummary} • 📅 {formatDate(venda.data_venda)}
-                        </Typography>
-                      </Box>
-                    </MenuItem>
-                  );
-                })}
+                {vendas.map((venda) => (
+                  <MenuItem key={venda.id} value={venda.id}>
+                    {venda.cliente_nome} - {formatCurrency(venda.valor_total)} 
+                    ({formatDate(venda.data_venda)})
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 
@@ -844,129 +701,6 @@ const PagamentosPage: React.FC = () => {
             disabled={!formData.venda_id || !formData.valor}
           >
             {editingPagamento ? 'Atualizar' : 'Salvar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog para Pagamento por Cliente */}
-      <Dialog 
-        open={openDialogCliente} 
-        onClose={handleCloseDialogCliente} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
-      >
-        <DialogTitle sx={{ pb: 2, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-          <PersonIcon sx={{ mr: 1 }} />
-          Pagamento por Cliente (Distribuição Automática)
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="body2">
-              <strong>Como funciona:</strong> O valor será distribuído automaticamente entre as vendas pendentes do cliente, 
-              começando pelas mais antigas (FIFO). Se o valor for maior que o devido, será distribuído entre múltiplas vendas.
-            </Typography>
-          </Alert>
-
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <Autocomplete
-              options={clientes}
-              getOptionLabel={(cliente) => `${cliente.nome} - ${cliente.telefone}`}
-              value={clienteSelecionado}
-              onChange={(_, value) => handleClienteChange(value)}
-              filterOptions={(options, params) => {
-                const filtered = options.filter((option) => {
-                  const searchTerm = params.inputValue.toLowerCase();
-                  return (
-                    option.nome.toLowerCase().includes(searchTerm) ||
-                    option.telefone.includes(params.inputValue)
-                  );
-                });
-                return filtered;
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Selecionar Cliente"
-                  placeholder="Digite o nome ou telefone do cliente..."
-                  required
-                  fullWidth
-                  helperText="Busque por nome ou telefone do cliente"
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
-            />
-
-            <TextField
-              label="Valor Total Pago"
-              type="number"
-              value={formDataCliente.valor}
-              onChange={(e) => setFormDataCliente({ ...formDataCliente, valor: e.target.value })}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-              }}
-              required
-              fullWidth
-              helperText="Valor total que o cliente pagou - será distribuído automaticamente"
-            />
-
-            <FormControl fullWidth>
-              <InputLabel>Método de Pagamento</InputLabel>
-              <Select
-                value={formDataCliente.metodo}
-                label="Método de Pagamento"
-                onChange={(e) => setFormDataCliente({ ...formDataCliente, metodo: e.target.value })}
-              >
-                <MenuItem value="pix">PIX</MenuItem>
-                <MenuItem value="cartao">Cartão</MenuItem>
-                <MenuItem value="dinheiro">Dinheiro</MenuItem>
-                <MenuItem value="transferencia">Transferência</MenuItem>
-              </Select>
-            </FormControl>
-
-            <TextField
-              label="Data do Pagamento"
-              type="date"
-              value={formDataCliente.data_pagamento}
-              onChange={(e) => setFormDataCliente({ ...formDataCliente, data_pagamento: e.target.value })}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              required
-              fullWidth
-            />
-
-            <TextField
-              label="Observações"
-              multiline
-              rows={3}
-              value={formDataCliente.observacoes}
-              onChange={(e) => setFormDataCliente({ ...formDataCliente, observacoes: e.target.value })}
-              placeholder="Observações sobre o pagamento..."
-              fullWidth
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseDialogCliente}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSaveCliente}
-            variant="contained"
-            color="success"
-            disabled={!clienteSelecionado || !formDataCliente.valor}
-          >
-            Distribuir Pagamento
           </Button>
         </DialogActions>
       </Dialog>
