@@ -665,6 +665,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                           precoGondola={produto.preco_compra}
                           impostoPercentual={produto.imposto_percentual}
                           cotacao={cotacaoAtual}
+                          precoVendaAtual={produto.preco_venda}
                           onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
                         />
                       </Grid>
@@ -820,6 +821,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                           precoGondola={produto.preco_compra}
                           impostoPercentual={produto.imposto_percentual}
                           cotacao={cotacaoAtual}
+                          precoVendaAtual={produto.preco_venda}
                           onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
                         />
                       </Grid>
