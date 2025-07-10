@@ -741,6 +741,15 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                           startAdornment: <InputAdornment position="start">R$</InputAdornment>,
                         }}
                         inputProps={{ step: 0.01, min: 0 }}
+                        helperText={
+                          produto.preco_compra && produto.imposto_percentual 
+                            ? <SugestaoPreco 
+                                precoGondola={produto.preco_compra}
+                                impostoPercentual={produto.imposto_percentual}
+                                cotacao={cotacaoAtual}
+                              />
+                            : undefined
+                        }
                       />
                     </Grid>
                     
@@ -784,6 +793,37 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                         inputProps={{ step: 0.1, min: 0, max: 100 }}
                       />
                     </Grid>
+
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        fullWidth
+                        label="Custo Real BRL"
+                        type="number"
+                        value={
+                          produto.preco_compra && produto.imposto_percentual
+                            ? calcularCustoRealBRL(produto.preco_compra, produto.imposto_percentual).toFixed(2)
+                            : '0.00'
+                        }
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                          readOnly: true,
+                        }}
+                        disabled
+                        helperText="Gôndola + Imposto × Cotação"
+                      />
+                    </Grid>
+
+                    {/* Calculadora de Margem/Markup para TODOS os produtos */}
+                    {produto.preco_compra > 0 && produto.imposto_percentual !== undefined && cotacaoAtual > 0 && (
+                      <Grid size={{ xs: 12 }}>
+                        <CalculadoraPreco 
+                          precoGondola={produto.preco_compra}
+                          impostoPercentual={produto.imposto_percentual}
+                          cotacao={cotacaoAtual}
+                          onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
+                        />
+                      </Grid>
+                    )}
                   </>
                 )}
               </Grid>
