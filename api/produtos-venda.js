@@ -94,10 +94,74 @@ module.exports = async (req, res) => {
 
     // Handle different HTTP methods
     console.log('Processing method:', req.method);
+    console.log('Request URL:', req.url);
 
     if (req.method === 'GET') {
       try {
         console.log('Executing GET request...');
+        
+        // Endpoint específico para cotação do dólar (FALTAVA ESTE!)
+        if (req.url?.includes('/cotacao-dolar') || req.query.cotacao === 'true') {
+          console.log('📈 Endpoint de cotação do dólar acessado!');
+          
+          try {
+            // Usar fetch nativo para obter cotação atual
+            const response = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+            
+            if (!response.ok) {
+              throw new Error(`Erro na API de cotação: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            const cotacao = parseFloat(data.USDBRL.bid);
+            
+            if (isNaN(cotacao) || cotacao <= 0) {
+              throw new Error('Cotação inválida recebida da API');
+            }
+            
+            console.log(`✅ Cotação USD/BRL obtida: R$ ${cotacao.toFixed(4)}`);
+            
+            return res.json({
+              cotacao: cotacao,
+              timestamp: new Date().toISOString(),
+              fonte: 'AwesomeAPI'
+            });
+            
+          } catch (cotacaoError) {
+            console.error('❌ Erro ao obter cotação do dólar:', cotacaoError);
+            
+            // Fallback: buscar cotação mais recente do banco de dados
+            try {
+              const { data: produtoRecente, error: dbError } = await supabase
+                .from('produtos_venda')
+                .select('dolar_agora')
+                .not('dolar_agora', 'is', null)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+              
+              if (!dbError && produtoRecente?.dolar_agora) {
+                console.log(`⚡ Usando cotação do banco como fallback: R$ ${produtoRecente.dolar_agora}`);
+                return res.json({
+                  cotacao: produtoRecente.dolar_agora,
+                  timestamp: new Date().toISOString(),
+                  fonte: 'Database Fallback'
+                });
+              }
+            } catch (dbFallbackError) {
+              console.error('❌ Fallback do banco também falhou:', dbFallbackError);
+            }
+            
+            // Último fallback: cotação padrão
+            const cotacaoFallback = 5.40;
+            console.log(`🔄 Usando cotação padrão como último fallback: R$ ${cotacaoFallback}`);
+            return res.json({
+              cotacao: cotacaoFallback,
+              timestamp: new Date().toISOString(),
+              fonte: 'Fallback Padrão'
+            });
+          }
+        }
         
         if (req.query.venda_id) {
           console.log('Getting products by sale ID:', req.query.venda_id);

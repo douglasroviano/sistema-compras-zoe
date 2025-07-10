@@ -23,7 +23,13 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
 
   const atualizarCotacao = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+      // CORRIGIR: usar URL relativa na produção, localhost para desenvolvimento
+      const isProduction = window.location.hostname !== 'localhost';
+      const API_URL = isProduction 
+        ? '/api' // URL relativa na produção (Vercel)
+        : (import.meta.env.VITE_API_URL || 'http://localhost:4000/api'); // Localhost para desenvolvimento
+      
+      console.log(`🔄 Buscando cotação via: ${API_URL}/produtos-venda/cotacao-dolar`);
       const response = await axios.get(`${API_URL}/produtos-venda/cotacao-dolar`);
       
       const novaCotacao = response.data.cotacao;
@@ -44,12 +50,12 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
           second: '2-digit'
         });
         setUltimaAtualizacao(timestampBrasil);
-        console.log(`Cotação global atualizada: R$ ${novaCotacao} em ${timestampBrasil}`);
+        console.log(`✅ Cotação global atualizada: R$ ${novaCotacao} (${response.data.fonte}) em ${timestampBrasil}`);
       }
       
       setLoading(false);
     } catch (error) {
-      console.error('Erro ao buscar cotação:', error);
+      console.error('❌ Erro ao buscar cotação:', error);
       
       // Só define timestamp de erro se não tiver cotação ainda
       if (cotacao === 0 && ultimaAtualizacao === '') {
