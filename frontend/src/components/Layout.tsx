@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCotacao } from '../contexts/CotacaoContext';
 import {
   Box,
   Drawer,
@@ -17,6 +18,7 @@ import {
   useTheme,
   useMediaQuery,
   Button,
+  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -25,12 +27,53 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Payment as PaymentIcon,
   Logout as LogoutIcon,
+  AttachMoney as AttachMoneyIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
 interface LayoutProps {
   children: React.ReactNode;
+}
+
+// Componente para mostrar cotação do dólar (como no backup funcional)
+function CotacaoDolar() {
+  const { cotacao, ultimaAtualizacao, loading } = useCotacao();
+
+  if (loading) {
+    return (
+      <Chip
+        icon={<AttachMoneyIcon />}
+        label="Carregando..."
+        size="small"
+        variant="outlined"
+        sx={{ ml: 2 }}
+      />
+    );
+  }
+
+  // Se cotação for 0, não mostrar (até obter cotação real)
+  if (cotacao === 0) {
+    return null;
+  }
+
+  return (
+    <Chip
+      icon={<AttachMoneyIcon />}
+      label={`Dólar agora: R$ ${cotacao.toFixed(2)} - Atualizado: ${ultimaAtualizacao}`}
+      size="small"
+      variant="outlined"
+      sx={{ 
+        ml: 2,
+        backgroundColor: '#e3f2fd',
+        borderColor: '#1976d2',
+        color: '#1565c0',
+        '& .MuiChip-icon': {
+          color: '#1976d2'
+        }
+      }}
+    />
+  );
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -174,13 +217,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             noWrap 
             component="div"
             sx={{ 
-              flexGrow: 1,
               color: 'text.primary',
-              fontWeight: 600
+              fontWeight: 600,
+              flexGrow: 1
             }}
           >
             {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
           </Typography>
+          
+          <CotacaoDolar />
 
           {/* User info desktop */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
