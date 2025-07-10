@@ -38,48 +38,64 @@ interface LayoutProps {
 
 // Componente para mostrar cotação do dólar (como no backup funcional)
 function CotacaoDolar() {
+  console.log('🚀 CotacaoDolar: Componente iniciado');
+  
+  // Hooks devem estar fora de try-catch
   const { cotacao, ultimaAtualizacao, loading } = useCotacao();
+  
+  try {
+    console.log('🔍 CotacaoDolar Debug:', { cotacao, ultimaAtualizacao, loading });
 
-  // DEBUG: Vamos ver o que está acontecendo
-  console.log('🔍 CotacaoDolar Debug:', { cotacao, ultimaAtualizacao, loading });
+    if (loading) {
+      console.log('⏳ CotacaoDolar: Mostrando loading...');
+      return (
+        <Chip
+          icon={<AttachMoneyIcon />}
+          label="Carregando..."
+          size="small"
+          variant="outlined"
+          sx={{ ml: 2 }}
+        />
+      );
+    }
 
-  if (loading) {
-    console.log('⏳ CotacaoDolar: Mostrando loading...');
+    // Se cotação for 0, não mostrar (até obter cotação real)
+    if (cotacao === 0) {
+      console.log('❌ CotacaoDolar: Cotação é 0, não mostrando chip');
+      return null;
+    }
+
+    console.log('✅ CotacaoDolar: Renderizando chip com cotação:', cotacao);
     return (
       <Chip
         icon={<AttachMoneyIcon />}
-        label="Carregando..."
+        label={`Dólar agora: R$ ${cotacao.toFixed(2)} - Atualizado: ${ultimaAtualizacao}`}
         size="small"
+        variant="outlined"
+        sx={{ 
+          ml: 2,
+          backgroundColor: '#e3f2fd',
+          borderColor: '#1976d2',
+          color: '#1565c0',
+          '& .MuiChip-icon': {
+            color: '#1976d2'
+          }
+        }}
+      />
+    );
+  } catch (error) {
+    console.error('💥 ERRO no CotacaoDolar:', error);
+    // Fallback: mostrar erro visualmente
+    return (
+      <Chip
+        label="Erro na cotação"
+        size="small"
+        color="error"
         variant="outlined"
         sx={{ ml: 2 }}
       />
     );
   }
-
-  // Se cotação for 0, não mostrar (até obter cotação real)
-  if (cotacao === 0) {
-    console.log('❌ CotacaoDolar: Cotação é 0, não mostrando chip');
-    return null;
-  }
-
-  console.log('✅ CotacaoDolar: Renderizando chip com cotação:', cotacao);
-  return (
-    <Chip
-      icon={<AttachMoneyIcon />}
-      label={`Dólar agora: R$ ${cotacao.toFixed(2)} - Atualizado: ${ultimaAtualizacao}`}
-      size="small"
-      variant="outlined"
-      sx={{ 
-        ml: 2,
-        backgroundColor: '#e3f2fd',
-        borderColor: '#1976d2',
-        color: '#1565c0',
-        '& .MuiChip-icon': {
-          color: '#1976d2'
-        }
-      }}
-    />
-  );
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
