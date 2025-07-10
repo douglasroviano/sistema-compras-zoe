@@ -36,7 +36,21 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+// Componente de teste simples
+function TesteChip() {
+  console.log('🟡 TesteChip: Componente executado');
+  return (
+    <Chip
+      label="TESTE"
+      size="small"
+      color="primary"
+      sx={{ ml: 2 }}
+    />
+  );
+}
+
 // Componente para mostrar cotação do dólar (como no backup funcional)
+/*
 function CotacaoDolar() {
   console.log('🚀 CotacaoDolar: Componente iniciado');
   
@@ -97,14 +111,19 @@ function CotacaoDolar() {
     );
   }
 }
+*/
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  console.log('🔥 Layout: Iniciando renderização');
+  
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  console.log('🔥 Layout: Hooks carregados, user:', !!user);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -129,6 +148,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Vendas', path: '/vendas', icon: <ShoppingCartIcon /> },
     { label: 'Pagamentos', path: '/pagamentos', icon: <PaymentIcon /> },
   ];
+
+  console.log('🔥 Layout: Renderizando Toolbar...');
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -247,7 +268,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
           </Typography>
           
-          <CotacaoDolar />
+          <TesteChip />
 
           {/* User info desktop */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
