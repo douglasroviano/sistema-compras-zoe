@@ -40,7 +40,11 @@ interface LayoutProps {
 function CotacaoDolar() {
   const { cotacao, ultimaAtualizacao, loading } = useCotacao();
 
+  // DEBUG: Vamos ver o que está acontecendo
+  console.log('🔍 CotacaoDolar Debug:', { cotacao, ultimaAtualizacao, loading });
+
   if (loading) {
+    console.log('⏳ CotacaoDolar: Mostrando loading...');
     return (
       <Chip
         icon={<AttachMoneyIcon />}
@@ -54,9 +58,11 @@ function CotacaoDolar() {
 
   // Se cotação for 0, não mostrar (até obter cotação real)
   if (cotacao === 0) {
+    console.log('❌ CotacaoDolar: Cotação é 0, não mostrando chip');
     return null;
   }
 
+  console.log('✅ CotacaoDolar: Renderizando chip com cotação:', cotacao);
   return (
     <Chip
       icon={<AttachMoneyIcon />}
