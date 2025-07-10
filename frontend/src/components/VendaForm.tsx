@@ -13,13 +13,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  InputAdornment,
-  Chip
+  InputAdornment
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ptBR } from 'date-fns/locale';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -28,17 +23,11 @@ import {
 import type { Venda } from '../types/venda';
 import type { Cliente } from '../types/cliente';
 import type { Produto } from '../types/produto';
-import { useCotacao } from '../contexts/CotacaoContext';
-import { useCotacaoCalculos } from '../hooks/useCotacaoCalculos';
-import CalculadoraPreco from './CalculadoraPreco';
-import SugestaoPreco from './SugestaoPreco';
 import axios from 'axios';
 
-// Configuração da API - dinâmica como CotacaoContext
+// Configuração da API
 const api = axios.create({
-  baseURL: window.location.hostname === 'localhost' 
-    ? 'http://localhost:4000/api'
-    : '/api', // URLs relativas para produção
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
 });
 
@@ -53,12 +42,9 @@ interface ProdutoVenda {
   nome_produto: string;
   cor?: string;
   tamanho?: string;
-  preco_compra: number; // Sempre em USD
-  preco_venda: number;  // Sempre em BRL
+  preco_venda: number;
   quantidade: number;
-  marca?: string;
-  dolar_agora?: number; // Cotação no momento
-  imposto_percentual?: number; // Padrão 7%
+  marca?: string; // Novo campo
   is_novo?: boolean; // Flag para indicar se é um produto novo
 }
 
@@ -66,7 +52,6 @@ interface FormErrors {
   cliente_telefone?: string;
   produtos?: string;
   metodo_pagamento?: string;
-  metodo_entrega?: string;
 }
 
 const formasPagamento = [
@@ -80,16 +65,7 @@ const statusVenda = [
   { value: 'pendente', label: 'Pendente' },
   { value: 'despachada', label: 'Despachada' },
   { value: 'entregue', label: 'Entregue' },
-  { value: 'whatsapp', label: 'Whatsapp' },
   { value: 'cancelada', label: 'Cancelada' }
-];
-
-const metodosEntrega = [
-  { value: 'correios', label: 'Correios' },
-  { value: 'motoboy', label: 'Motoboy' },
-  { value: 'retirar_local', label: 'Retirar no Local' },
-  { value: 'entrega_propria', label: 'Entrega Própria' },
-  { value: 'outros', label: 'Outros' }
 ];
 
 const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
@@ -102,71 +78,19 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtosVenda, setProdutosVenda] = useState<ProdutoVenda[]>([]);
-  const [sugestoesCalculadora, setSugestoesCalculadora] = useState<{[key: number]: number}>({});
   
   const [formData, setFormData] = useState({
     cliente_telefone: venda?.cliente_telefone || '',
     metodo_pagamento: venda?.metodo_pagamento || '',
     observacoes: venda?.observacoes || '',
     valor_entrada: 0, // Campo local para cálculos
-    status_venda: venda?.status_venda || 'pendente',
-    data_vencimento: venda?.data_vencimento || '',
-    metodo_entrega: ''
+    status_venda: venda?.status_venda || 'pendente'
   });
-
-  // Usar cotação do contexto global
-  const { cotacao: cotacaoAtual, ultimaAtualizacao: cotacaoTimestamp } = useCotacao();
-  
-  // Hook para cálculos com cotação
-  const { calcularCustoRealBRL } = useCotacaoCalculos();
 
   useEffect(() => {
     fetchClientes();
     fetchProdutos();
   }, []);
-
-  // Carregar dados da venda quando em modo de edição
-  useEffect(() => {
-    if (venda && clientes.length > 0) {
-      const cliente = clientes.find(c => c.telefone === venda.cliente_telefone);
-      if (cliente) {
-        setClienteSelecionado(cliente);
-        // Carregar preferência de entrega do cliente
-        setFormData(prev => ({ ...prev, metodo_entrega: cliente.preferencia_entrega || '' }));
-      }
-    }
-  }, [venda, clientes]);
-
-  // Carregar produtos da venda quando em modo de edição
-  useEffect(() => {
-    if (venda?.id) {
-      fetchProdutosDaVenda(venda.id);
-    }
-  }, [venda]);
-
-  const fetchProdutosDaVenda = async (vendaId: string) => {
-    try {
-      // Buscar produtos específicos desta venda
-      const response = await api.get(`/produtos-venda?venda_id=${vendaId}`);
-      const produtosDaVenda = response.data.map((produto: Produto) => ({
-        produto_id: produto.id,
-        nome_produto: produto.nome_produto,
-        cor: produto.cor || '',
-        tamanho: produto.tamanho || '',
-        marca: produto.marca || '',
-        preco_compra: produto.preco_compra || 0,
-        preco_venda: produto.preco_venda || 0,
-        quantidade: produto.quantidade || 1, // Buscar quantidade do banco
-        imposto_percentual: produto.imposto_percentual || 7, // Buscar imposto do banco
-        is_novo: false
-      }));
-      setProdutosVenda(produtosDaVenda);
-    } catch (error) {
-      console.error('Erro ao buscar produtos da venda:', error);
-      // Se não conseguir carregar produtos, deixa vazio para o usuário adicionar
-      setProdutosVenda([]);
-    }
-  };
 
   const fetchClientes = async () => {
     try {
@@ -187,13 +111,11 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
         cor: produto.cor || '',
         tamanho: produto.tamanho || '',
         marca: produto.marca || '',
-        preco_compra: produto.preco_compra || 0,
         preco_venda: produto.preco_venda || 0,
+        preco_compra: produto.preco_compra || 0,
         descricao: produto.descricao || '',
         foto_url: produto.foto_url || '',
-        observacoes: produto.observacoes || '',
-        // ELIMINAR valor hardcoded - usar APENAS dados do banco
-        imposto_percentual: produto.imposto_percentual || 0 // Se não tem no banco, é 0%
+        observacoes: produto.observacoes || ''
       }));
       
       setProdutos(produtosFormatados);
@@ -202,12 +124,34 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
     }
   };
 
+  const salvarProdutoNovo = async (produtoData: {
+    nome_produto: string;
+    cor?: string;
+    tamanho?: string;
+    marca?: string;
+    preco_venda: number;
+  }) => {
+    try {
+      // Criar produto como produto_venda sem venda_id ainda
+      const produtoVendaData = {
+        ...produtoData,
+        venda_id: null, // Será atualizado depois
+        preco_compra: produtoData.preco_venda * 0.7, // Estimativa para margem
+      };
+
+      const response = await api.post('/produtos-venda', produtoVendaData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
+      throw error;
+    }
+  };
+
   const handleClienteChange = (cliente: Cliente | null) => {
     setClienteSelecionado(cliente);
     setFormData(prev => ({
       ...prev,
-      cliente_telefone: cliente?.telefone || '',
-      metodo_entrega: cliente?.preferencia_entrega || '' // Adicionar preferência de entrega
+      cliente_telefone: cliente?.telefone || ''
     }));
   };
 
@@ -218,7 +162,6 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
       cor: '',
       tamanho: '',
       marca: '',
-      preco_compra: 0,
       preco_venda: 0,
       quantidade: 1,
       is_novo: false
@@ -239,10 +182,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
               ...produto,
               produto_id: 'novo_produto',
               nome_produto: '',
-              preco_compra: 0,
               preco_venda: 0,
-              // ELIMINAR valor hardcoded - produtos novos iniciam sem imposto definido
-              imposto_percentual: 0, // Será definido pelo usuário se necessário
               is_novo: true
             };
           } else {
@@ -252,13 +192,10 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
               ...produto,
               produto_id: String(value),
               nome_produto: produtoSelecionado?.nome_produto || '',
-              preco_compra: produtoSelecionado?.preco_compra || 0,
               preco_venda: produtoSelecionado?.preco_venda || 0,
               cor: produtoSelecionado?.cor || '',
               tamanho: produtoSelecionado?.tamanho || '',
               marca: produtoSelecionado?.marca || '',
-              // ELIMINAR valor hardcoded - usar APENAS dados do banco
-              imposto_percentual: produtoSelecionado?.imposto_percentual || 0,
               is_novo: false
             };
           }
@@ -276,9 +213,20 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
   };
 
   const calcularValorPago = () => {
-    // Sempre usar o valor digitado no campo "Valor de Entrada", independente do método
+    const valorTotal = calcularValorTotal();
     const valorEntrada = formData.valor_entrada || 0;
-    return valorEntrada;
+    
+    switch (formData.metodo_pagamento) {
+      case 'cartao_100':
+      case 'pix_100':
+        return valorTotal;
+      case 'pix_30_resto_entrega':
+        return Math.max(valorEntrada, valorTotal * 0.3);
+      case 'dinheiro':
+        return valorEntrada;
+      default:
+        return valorEntrada;
+    }
   };
 
   const validateForm = () => {
@@ -288,13 +236,13 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
       newErrors.cliente_telefone = 'Cliente é obrigatório';
     }
 
-    if (!venda && produtosVenda.length === 0) {
+    if (produtosVenda.length === 0) {
       newErrors.produtos = 'Adicione pelo menos um produto';
-    } else if (produtosVenda.length > 0) {
+    } else {
       // Validar produtos individuais
       const produtoInvalido = produtosVenda.find(produto => {
         if (produto.is_novo) {
-          return !produto.nome_produto || produto.preco_compra <= 0 || produto.preco_venda <= 0;
+          return !produto.nome_produto || produto.preco_venda <= 0;
         }
         return !produto.produto_id || produto.produto_id === '' || produto.produto_id === 'novo_produto';
       });
@@ -323,13 +271,41 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
       setLoading(true);
       setError(null);
 
+      // Primeiro, criar produtos novos se necessário
+      const produtosProcessados = await Promise.all(
+        produtosVenda.map(async (produto) => {
+          if (produto.is_novo && produto.nome_produto) {
+            // Criar produto novo
+            const novoProduto = await salvarProdutoNovo({
+              nome_produto: produto.nome_produto,
+              cor: produto.cor,
+              tamanho: produto.tamanho,
+              marca: produto.marca,
+              preco_venda: produto.preco_venda
+            });
+            
+            // Atualizar lista de produtos local
+            setProdutos(prev => [...prev, novoProduto]);
+            
+            return {
+              ...produto,
+              produto_id: novoProduto.id,
+              is_novo: false
+            };
+          }
+          return produto;
+        })
+      );
+
+      // Atualizar estado com produtos processados
+      setProdutosVenda(produtosProcessados);
+
       const valorTotal = calcularValorTotal();
       const valorPago = calcularValorPago();
 
       const vendaData: Venda = {
         cliente_telefone: formData.cliente_telefone,
-        data_venda: venda?.data_venda || new Date().toISOString().split('T')[0],
-        data_vencimento: formData.data_vencimento || undefined,
+        data_venda: venda?.data_venda || new Date().toISOString().split('T')[0], // Formato de data YYYY-MM-DD
         metodo_pagamento: formData.metodo_pagamento || '',
         valor_total: Number(valorTotal.toFixed(2)),
         valor_pago: Number(valorPago.toFixed(2)),
@@ -337,67 +313,15 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
         observacoes: formData.observacoes || ''
       };
 
+      // Adicionar ID apenas se for edição
       if (venda?.id) {
         vendaData.id = venda.id;
       }
 
-      // Dados para atualizar o cliente separadamente
-      const clienteData = {
-        metodo_entrega: formData.metodo_entrega,
-        cliente_telefone: formData.cliente_telefone
-      };
-
-      // Usar endpoint com produtos para criação e atualização
-      if (venda?.id) {
-        // Atualização: usar endpoint com produtos
-        const response = await api.put(`/vendas/${venda.id}/com-produtos`, {
-          vendaData: { ...vendaData, ...clienteData },
-          produtos: produtosVenda.map(produto => ({
-            nome_produto: produto.nome_produto,
-            cor: produto.cor,
-            tamanho: produto.tamanho,
-            marca: produto.marca,
-            preco_compra: produto.preco_compra,
-            preco_venda: produto.preco_venda,
-            quantidade: produto.quantidade,
-            dolar_agora: cotacaoAtual,
-            imposto_percentual: produto.imposto_percentual || 7
-          }))
-        });
-        await onSave(response.data);
-      } else {
-        // Criação: usar endpoint com produtos
-        const response = await api.post('/vendas/com-produtos', {
-          vendaData,
-          produtos: produtosVenda.map(produto => ({
-            nome_produto: produto.nome_produto,
-            cor: produto.cor,
-            tamanho: produto.tamanho,
-            marca: produto.marca,
-            preco_compra: produto.preco_compra,
-            preco_venda: produto.preco_venda,
-            quantidade: produto.quantidade,
-            dolar_agora: cotacaoAtual,
-            imposto_percentual: produto.imposto_percentual || 7
-          }))
-        });
-        
-        // Atualizar cliente separadamente se necessário
-        if (clienteData.metodo_entrega && clienteData.cliente_telefone) {
-          try {
-            await api.put(`/clientes/${clienteData.cliente_telefone}`, {
-              preferencia_entrega: clienteData.metodo_entrega
-            });
-          } catch (error) {
-            console.error('Erro ao atualizar cliente:', error);
-          }
-        }
-        
-        await onSave(response.data);
-      }
+      await onSave(vendaData);
     } catch (error) {
       console.error('Erro ao salvar venda:', error);
-      setError('Erro ao salvar a venda. Verifique os dados e tente novamente.');
+      setError('Erro ao salvar venda');
     } finally {
       setLoading(false);
     }
@@ -416,26 +340,6 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
       )}
 
       <Grid container spacing={3}>
-        {/* Cotação do Dólar Atual */}
-        <Grid size={{ xs: 12 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Chip 
-              label={`💰 Dólar agora: R$ ${cotacaoAtual.toFixed(4)} - ${cotacaoTimestamp ? new Date(cotacaoTimestamp).toLocaleString('pt-BR') : 'Carregando...'}`}
-              color="primary"
-              variant="filled"
-              sx={{ 
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                backgroundColor: '#1976d2',
-                color: 'white'
-              }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              Esta cotação será gravada nos produtos da venda
-            </Typography>
-          </Box>
-        </Grid>
-
         {/* Seleção de Cliente */}
         <Grid size={{ xs: 12 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
@@ -552,22 +456,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                     <Grid size={{ xs: 6, sm: 2 }}>
                       <TextField
                         fullWidth
-                        label="Preço Gôndola"
-                        type="number"
-                        value={produto.preco_compra}
-                        onChange={(e) => handleProdutoChange(index, 'preco_compra', parseFloat(e.target.value) || 0)}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                        }}
-                        inputProps={{ step: 0.01, min: 0 }}
-                        required
-                        helperText="Sem imposto"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Venda BRL"
+                        label="Preço Unit."
                         type="number"
                         value={produto.preco_venda}
                         onChange={(e) => handleProdutoChange(index, 'preco_venda', parseFloat(e.target.value) || 0)}
@@ -605,74 +494,6 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                         placeholder="Ex: Nike"
                       />
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Imposto %"
-                        type="number"
-                        value={produto.imposto_percentual || ''}
-                        onChange={(e) => handleProdutoChange(index, 'imposto_percentual', parseFloat(e.target.value) || 0)}
-                        InputProps={{
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                        }}
-                        inputProps={{ step: 0.1, min: 0, max: 100 }}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Venda BRL"
-                        type="number"
-                        value={produto.preco_venda}
-                        onChange={(e) => handleProdutoChange(index, 'preco_venda', parseFloat(e.target.value) || 0)}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                        }}
-                        inputProps={{ step: 0.01, min: 0 }}
-                        helperText={
-                          produto.preco_compra && produto.imposto_percentual >= 0
-                            ? <SugestaoPreco 
-                                precoGondola={produto.preco_compra}
-                                impostoPercentual={produto.imposto_percentual}
-                                cotacao={cotacaoAtual}
-                                sugestaoCalculadora={sugestoesCalculadora[index]}
-                              />
-                            : undefined
-                        }
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField
-                        fullWidth
-                        label="Custo Real BRL"
-                        type="number"
-                        value={
-                          produto.preco_compra && produto.imposto_percentual
-                            ? calcularCustoRealBRL(produto.preco_compra, produto.imposto_percentual).toFixed(2)
-                            : '0.00'
-                        }
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                          readOnly: true,
-                        }}
-                        disabled
-                        helperText="Gôndola + Imposto × Cotação"
-                      />
-                    </Grid>
-                    
-                                        {/* Calculadora de Margem/Markup para Produto Novo */}
-                    {produto.preco_compra > 0 && produto.imposto_percentual >= 0 && cotacaoAtual > 0 && (
-                      <Grid size={{ xs: 12 }}>
-                        <CalculadoraPreco 
-                          precoGondola={produto.preco_compra}
-                          impostoPercentual={produto.imposto_percentual}
-                          cotacao={cotacaoAtual}
-                          precoVendaAtual={produto.preco_venda}
-                          onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
-                          onCalculadoraChange={(sugestao) => setSugestoesCalculadora(prev => ({...prev, [index]: sugestao}))}
-                        />
-                      </Grid>
-                    )}
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Button
                         variant="outlined"
@@ -720,24 +541,10 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                       />
                     </Grid>
                     
-                    <Grid size={{ xs: 6, sm: 2 }}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <TextField
                         fullWidth
-                        label="Preço Gôndola"
-                        type="number"
-                        value={produto.preco_compra}
-                        onChange={(e) => handleProdutoChange(index, 'preco_compra', parseFloat(e.target.value) || 0)}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                        }}
-                        inputProps={{ step: 0.01, min: 0 }}
-                        helperText="Sem imposto"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Venda BRL"
+                        label="Preço Unit."
                         type="number"
                         value={produto.preco_venda}
                         onChange={(e) => handleProdutoChange(index, 'preco_venda', parseFloat(e.target.value) || 0)}
@@ -745,16 +552,6 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                           startAdornment: <InputAdornment position="start">R$</InputAdornment>,
                         }}
                         inputProps={{ step: 0.01, min: 0 }}
-                        helperText={
-                          produto.preco_compra && produto.imposto_percentual >= 0
-                            ? <SugestaoPreco 
-                                precoGondola={produto.preco_compra}
-                                impostoPercentual={produto.imposto_percentual}
-                                cotacao={cotacaoAtual}
-                                sugestaoCalculadora={sugestoesCalculadora[index]}
-                              />
-                            : undefined
-                        }
                       />
                     </Grid>
                     
@@ -784,53 +581,6 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                         onChange={(e) => handleProdutoChange(index, 'marca', e.target.value)}
                       />
                     </Grid>
-                    
-                    <Grid size={{ xs: 6, sm: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Imposto %"
-                        type="number"
-                        value={produto.imposto_percentual || ''}
-                        onChange={(e) => handleProdutoChange(index, 'imposto_percentual', parseFloat(e.target.value) || 0)}
-                        InputProps={{
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                        }}
-                        inputProps={{ step: 0.1, min: 0, max: 100 }}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField
-                        fullWidth
-                        label="Custo Real BRL"
-                        type="number"
-                        value={
-                          produto.preco_compra && produto.imposto_percentual
-                            ? calcularCustoRealBRL(produto.preco_compra, produto.imposto_percentual).toFixed(2)
-                            : '0.00'
-                        }
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                          readOnly: true,
-                        }}
-                        disabled
-                        helperText="Gôndola + Imposto × Cotação"
-                      />
-                    </Grid>
-
-                    {/* Calculadora de Margem/Markup para TODOS os produtos */}
-                    {produto.preco_compra > 0 && produto.imposto_percentual >= 0 && cotacaoAtual > 0 && (
-                      <Grid size={{ xs: 12 }}>
-                        <CalculadoraPreco 
-                          precoGondola={produto.preco_compra}
-                          impostoPercentual={produto.imposto_percentual}
-                          cotacao={cotacaoAtual}
-                          precoVendaAtual={produto.preco_venda}
-                          onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
-                          onCalculadoraChange={(sugestao) => setSugestoesCalculadora(prev => ({...prev, [index]: sugestao}))}
-                        />
-                      </Grid>
-                    )}
                   </>
                 )}
               </Grid>
@@ -878,28 +628,11 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
 
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth>
-            <InputLabel>Método de Entrega</InputLabel>
-            <Select
-              value={formData.metodo_entrega}
-              label="Método de Entrega"
-              onChange={(e) => setFormData(prev => ({ ...prev, metodo_entrega: e.target.value }))}
-            >
-              {metodosEntrega.map((metodo) => (
-                <MenuItem key={metodo.value} value={metodo.value}>
-                  {metodo.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <FormControl fullWidth>
             <InputLabel>Status da Venda</InputLabel>
             <Select
               value={formData.status_venda}
               label="Status da Venda"
-              onChange={(e) => setFormData(prev => ({ ...prev, status_venda: e.target.value as 'pendente' | 'despachada' | 'entregue' | 'whatsapp' | 'cancelada' }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, status_venda: e.target.value as 'pendente' | 'despachada' | 'entregue' | 'cancelada' }))}
             >
               {statusVenda.map((status) => (
                 <MenuItem key={status.value} value={status.value}>
@@ -908,30 +641,6 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
               ))}
             </Select>
           </FormControl>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-            <DatePicker
-              label="Data de Vencimento"
-              value={formData.data_vencimento ? new Date(formData.data_vencimento) : null}
-              onChange={(newValue) => {
-                setFormData(prev => ({ 
-                  ...prev, 
-                  data_vencimento: newValue ? newValue.toISOString().split('T')[0] : ''
-                }));
-              }}
-              minDate={new Date()} // Não permitir datas passadas
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  helperText: "📅 Data limite para pagamento da parcela",
-                  variant: "outlined"
-                }
-              }}
-              format="dd/MM/yyyy"
-            />
-          </LocalizationProvider>
         </Grid>
 
         {/* Resumo */}
@@ -987,7 +696,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
             <Button
               type="submit"
               variant="contained"
-              disabled={loading || (!venda && produtosVenda.length === 0)}
+              disabled={loading || produtosVenda.length === 0}
               sx={{ minWidth: 120 }}
             >
               {loading ? 'Salvando...' : venda ? 'Atualizar' : 'Salvar Venda'}
