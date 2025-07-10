@@ -18,6 +18,7 @@ interface CalculadoraPrecoProps {
   cotacao: number;
   precoVendaAtual?: number; // Preço atual digitado pelo usuário
   onSugestaoChange?: (sugestao: number) => void;
+  onCalculadoraChange?: (sugestao: number) => void; // Callback para notificar mudanças da calculadora
 }
 
 
@@ -29,7 +30,8 @@ const CalculadoraPreco: React.FC<CalculadoraPrecoProps> = ({
   impostoPercentual,
   cotacao,
   precoVendaAtual = 0,
-  onSugestaoChange
+  onSugestaoChange,
+  onCalculadoraChange
 }) => {
   const [tipoCalculo, setTipoCalculo] = useState<TipoCalculo>('margem');
   const [valorMargem, setValorMargem] = useState<number>(30); // 30% padrão
@@ -69,10 +71,11 @@ const CalculadoraPreco: React.FC<CalculadoraPrecoProps> = ({
     const sugestaoBRL = precoFinalUSD * cotacao;
     setSugestaoPreco(sugestaoBRL);
     
-    if (onSugestaoChange) {
-      onSugestaoChange(sugestaoBRL);
+    // Notificar componentes externos (como SugestaoPreco) sobre mudanças
+    if (onCalculadoraChange) {
+      onCalculadoraChange(sugestaoBRL);
     }
-  }, [precoGondola, impostoPercentual, cotacao, tipoCalculo, valorMargem, valorMarkup, custoRealUSD, onSugestaoChange]);
+  }, [precoGondola, impostoPercentual, cotacao, tipoCalculo, valorMargem, valorMarkup, custoRealUSD, onCalculadoraChange]);
 
   if (!precoGondola || precoGondola === 0) {
     return null;
@@ -136,11 +139,11 @@ const CalculadoraPreco: React.FC<CalculadoraPrecoProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {tipoCalculo === 'margem' ? (
             <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
-              💡 Sugestão: ${custoRealUSD.toFixed(2)} + {valorMargem}% = R$ {sugestaoPreco.toFixed(2)}
+              💡 Sugestão: ${custoRealUSD.toFixed(2)} + {valorMargem}% = ${(sugestaoPreco / cotacao).toFixed(2)} / R$ {sugestaoPreco.toFixed(2)}
             </Typography>
           ) : (
             <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
-              💡 Sugestão: ${custoRealUSD.toFixed(2)} + ${valorMarkup.toFixed(2)} = R$ {sugestaoPreco.toFixed(2)}
+              💡 Sugestão: ${custoRealUSD.toFixed(2)} + ${valorMarkup.toFixed(2)} = ${(sugestaoPreco / cotacao).toFixed(2)} / R$ {sugestaoPreco.toFixed(2)}
             </Typography>
           )}
           

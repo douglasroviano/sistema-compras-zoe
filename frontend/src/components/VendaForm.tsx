@@ -102,6 +102,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtosVenda, setProdutosVenda] = useState<ProdutoVenda[]>([]);
+  const [sugestoesCalculadora, setSugestoesCalculadora] = useState<{[key: number]: number}>({});
   
   const [formData, setFormData] = useState({
     cliente_telefone: venda?.cliente_telefone || '',
@@ -629,11 +630,12 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                         }}
                         inputProps={{ step: 0.01, min: 0 }}
                         helperText={
-                          produto.preco_compra && produto.imposto_percentual 
+                          produto.preco_compra && produto.imposto_percentual >= 0
                             ? <SugestaoPreco 
                                 precoGondola={produto.preco_compra}
                                 impostoPercentual={produto.imposto_percentual}
                                 cotacao={cotacaoAtual}
+                                sugestaoCalculadora={sugestoesCalculadora[index]}
                               />
                             : undefined
                         }
@@ -659,7 +661,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                     </Grid>
                     
                                         {/* Calculadora de Margem/Markup para Produto Novo */}
-                    {produto.preco_compra > 0 && produto.imposto_percentual !== undefined && cotacaoAtual > 0 && (
+                    {produto.preco_compra > 0 && produto.imposto_percentual >= 0 && cotacaoAtual > 0 && (
                       <Grid size={{ xs: 12 }}>
                         <CalculadoraPreco 
                           precoGondola={produto.preco_compra}
@@ -667,6 +669,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                           cotacao={cotacaoAtual}
                           precoVendaAtual={produto.preco_venda}
                           onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
+                          onCalculadoraChange={(sugestao) => setSugestoesCalculadora(prev => ({...prev, [index]: sugestao}))}
                         />
                       </Grid>
                     )}
@@ -743,11 +746,12 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                         }}
                         inputProps={{ step: 0.01, min: 0 }}
                         helperText={
-                          produto.preco_compra && produto.imposto_percentual 
+                          produto.preco_compra && produto.imposto_percentual >= 0
                             ? <SugestaoPreco 
                                 precoGondola={produto.preco_compra}
                                 impostoPercentual={produto.imposto_percentual}
                                 cotacao={cotacaoAtual}
+                                sugestaoCalculadora={sugestoesCalculadora[index]}
                               />
                             : undefined
                         }
@@ -815,7 +819,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                     </Grid>
 
                     {/* Calculadora de Margem/Markup para TODOS os produtos */}
-                    {produto.preco_compra > 0 && produto.imposto_percentual !== undefined && cotacaoAtual > 0 && (
+                    {produto.preco_compra > 0 && produto.imposto_percentual >= 0 && cotacaoAtual > 0 && (
                       <Grid size={{ xs: 12 }}>
                         <CalculadoraPreco 
                           precoGondola={produto.preco_compra}
@@ -823,6 +827,7 @@ const VendaForm: React.FC<VendaFormProps> = ({ venda, onSave, onCancel }) => {
                           cotacao={cotacaoAtual}
                           precoVendaAtual={produto.preco_venda}
                           onSugestaoChange={(sugestao) => handleProdutoChange(index, 'preco_venda', sugestao)}
+                          onCalculadoraChange={(sugestao) => setSugestoesCalculadora(prev => ({...prev, [index]: sugestao}))}
                         />
                       </Grid>
                     )}
