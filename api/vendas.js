@@ -221,7 +221,22 @@ module.exports = async (req, res) => {
         console.log('Getting all sales...');
         const { data, error } = await supabase
           .from('vendas')
-          .select('*')
+          .select(`
+            *,
+            produtos_venda (
+              id,
+              nome_produto,
+              cor,
+              tamanho,
+              marca,
+              preco_venda,
+              quantidade
+            ),
+            cliente:clientes (
+              nome,
+              telefone
+            )
+          `)
           .order('data_venda', { ascending: false });
         
         if (error) {
