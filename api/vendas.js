@@ -219,30 +219,72 @@ module.exports = async (req, res) => {
         }
 
         console.log('Getting all sales...');
-        const { data, error } = await supabase
-          .from('vendas')
-          .select(`
-            *,
-            produtos_venda (
-              id,
-              nome_produto,
-              cor,
-              tamanho,
-              marca,
-              preco_venda,
-              quantidade
-            ),
-            cliente:clientes (
-              nome,
-              telefone
-            )
-          `)
-          .order('data_venda', { ascending: false });
         
-        if (error) {
-          console.error('Error fetching sales:', error);
-          return res.status(500).json({ error: error.message });
+        // Buscar vendas (igual ao backup funcional)
+        const { data: vendas, error: vendasError } = await supabase
+          .from('vendas')
+          .select('*');
+        
+        if (vendasError) {
+          console.error('Error fetching vendas:', vendasError);
+          return res.status(500).json({ error: vendasError.message });
         }
+
+        // Buscar clientes separadamente (igual ao backup funcional)
+        const { data: clientes, error: clientesError } = await supabase
+          .from('clientes')
+          .select('telefone, nome');
+
+        if (clientesError) {
+          console.error('Error fetching clientes:', clientesError);
+          return res.status(500).json({ error: clientesError.message });
+        }
+
+        // Buscar produtos de todas as vendas (igual ao backup funcional)
+        const { data: todosProdutos, error: produtosError } = await supabase
+          .from('produtos_venda')
+          .select('*');
+
+        if (produtosError) {
+          console.error('Error fetching produtos:', produtosError);
+          return res.status(500).json({ error: produtosError.message });
+        }
+
+        // Buscar todos os pagamentos (igual ao backup funcional)
+        const { data: todosPagamentos, error: pagamentosError } = await supabase
+          .from('pagamentos')
+          .select('*');
+
+        if (pagamentosError) {
+          console.error('Error fetching pagamentos:', pagamentosError);
+          return res.status(500).json({ error: pagamentosError.message });
+        }
+
+        // Combinar os dados (EXATAMENTE como no backup funcional)
+        const vendasComClientes = vendas?.map(venda => {
+          const cliente = clientes?.find(c => c.telefone === venda.cliente_telefone);
+          
+          // Calcular valor pago real da tabela pagamentos
+          const pagamentosVenda = todosPagamentos?.filter(p => p.venda_id === venda.id) || [];
+          const valorPagoReal = pagamentosVenda.reduce((sum, p) => sum + p.valor, 0);
+          
+          // Buscar produtos desta venda
+          const produtosVenda = todosProdutos?.filter(p => p.venda_id === venda.id) || [];
+          const totalProdutos = produtosVenda.length;
+          
+          return {
+            ...venda,
+            cliente_nome: cliente?.nome || 'Cliente não encontrado',
+            valor_pago: valorPagoReal, // Sobrescrever com valor real da tabela pagamentos
+            total_produtos: totalProdutos,
+            produtos: produtosVenda // Incluir produtos para a página de pagamentos
+          };
+        });
+
+                 // Ordenar por data (igual ao backup funcional) 
+         const data = vendasComClientes?.sort((a, b) => 
+           new Date(b.data_venda).getTime() - new Date(a.data_venda).getTime()
+         );
         
         console.log('Sales fetched successfully, count:', data?.length || 0);
         return res.json(data || []);
