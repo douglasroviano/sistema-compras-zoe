@@ -27,7 +27,7 @@ export const CotacaoProvider: React.FC<CotacaoProviderProps> = ({ children }) =>
       const isProduction = window.location.hostname !== 'localhost';
       const API_URL = isProduction 
         ? '/api' // URL relativa na produção (Vercel)
-        : (import.meta.env.VITE_API_URL || 'http://localhost:4000/api'); // Localhost para desenvolvimento
+        : (import.meta.env.VITE_API_URL || '/api'); // Localhost para desenvolvimento
       
       console.log(`🔄 Buscando cotação via: ${API_URL}/produtos-venda/cotacao-dolar`);
       const response = await axios.get(`${API_URL}/produtos-venda/cotacao-dolar`);
