@@ -134,17 +134,65 @@ module.exports = async (req, res) => {
         }
 
         console.log('Getting all payments...');
-        const { data, error } = await supabase
+        
+        // BACKUP FUNCIONAL: Queries separadas + combinação JavaScript
+        console.log('📊 Buscando dados separados como no backup funcional...');
+        
+        // 1. Buscar todos os pagamentos
+        const { data: pagamentos, error: pagamentosError } = await supabase
           .from('pagamentos')
           .select('*');
         
-        if (error) {
-          console.error('Error fetching payments:', error);
-          return res.status(500).json({ error: error.message });
+        if (pagamentosError) {
+          console.error('Error fetching payments:', pagamentosError);
+          return res.status(500).json({ error: pagamentosError.message });
         }
         
-        console.log('Payments fetched successfully, count:', data?.length || 0);
-        return res.json(data || []);
+        // 2. Buscar todas as vendas separadamente
+        const { data: vendas, error: vendasError } = await supabase
+          .from('vendas')
+          .select('*');
+          
+        if (vendasError) {
+          console.error('Error fetching vendas for payments:', vendasError);
+          return res.status(500).json({ error: vendasError.message });
+        }
+        
+        // 3. Buscar todos os clientes separadamente  
+        const { data: clientes, error: clientesError } = await supabase
+          .from('clientes')
+          .select('telefone, nome');
+          
+        if (clientesError) {
+          console.error('Error fetching clientes for payments:', clientesError);
+          return res.status(500).json({ error: clientesError.message });
+        }
+        
+        console.log(`🔍 Dados obtidos: ${pagamentos?.length || 0} pagamentos, ${vendas?.length || 0} vendas, ${clientes?.length || 0} clientes`);
+        
+        // 4. Combinar os dados em JavaScript (como no backup funcional)
+        const pagamentosComDetalhes = pagamentos?.map(pagamento => {
+          const venda = vendas?.find(v => v.id === pagamento.venda_id);
+          const cliente = clientes?.find(c => c.telefone === venda?.cliente_telefone);
+          
+          return {
+            ...pagamento,
+            cliente_nome: cliente?.nome || 'Cliente não encontrado',
+            cliente_telefone: cliente?.telefone,
+            venda_valor_total: venda?.valor_total,
+            venda_valor_pago: venda?.valor_pago,
+            venda_data_vencimento: venda?.data_vencimento
+          };
+        });
+        
+        console.log('✅ Pagamentos com detalhes processados:', pagamentosComDetalhes?.length || 0);
+        console.log('🔍 Exemplo de dados combinados:', pagamentosComDetalhes?.[0] ? {
+          id: pagamentosComDetalhes[0].id.substring(0, 8),
+          cliente_nome: pagamentosComDetalhes[0].cliente_nome,
+          valor: pagamentosComDetalhes[0].valor
+        } : 'Nenhum pagamento encontrado');
+        
+        return res.json(pagamentosComDetalhes || []);
 
       } catch (getError) {
         console.error('Exception during GET:', getError);
