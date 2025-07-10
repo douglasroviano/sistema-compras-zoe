@@ -43,6 +43,7 @@ import {
 import ProdutoFormSimples from '../components/ProdutoFormSimples';
 import type { Produto } from '../types/produto';
 import type { ProdutoVenda } from '../types/produtoVenda';
+import { api } from '../services/api';
 
 const ProdutosPage: React.FC = () => {
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -60,7 +61,7 @@ const ProdutosPage: React.FC = () => {
   const fetchProdutos = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/produtos-venda');
+      const response = await api.get('/produtos-venda');
       if (!response.ok) {
         throw new Error('Erro ao carregar produtos');
       }
@@ -83,13 +84,7 @@ const ProdutosPage: React.FC = () => {
       
       const method = editingProduto ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(produtoData),
-      });
+      const response = await api[method](url, produtoData);
 
       if (!response.ok) {
         throw new Error('Erro ao salvar produto');
@@ -106,9 +101,7 @@ const ProdutosPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
       try {
-        const response = await fetch(`/api/produtos-venda/${id}`, {
-          method: 'DELETE',
-        });
+        const response = await api.delete(`/produtos-venda/${id}`);
 
         if (!response.ok) {
           throw new Error('Erro ao excluir produto');

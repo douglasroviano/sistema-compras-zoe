@@ -49,6 +49,7 @@ import {
 } from '@mui/icons-material';
 import type { Pagamento } from '../types/pagamento';
 import type { Venda } from '../types/venda';
+import { api } from '../services/api';
 
 interface PagamentoComDetalhes extends Pagamento {
   cliente_nome?: string;
@@ -86,11 +87,11 @@ const PagamentosPage: React.FC = () => {
   const fetchPagamentos = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/pagamentos');
-      if (!response.ok) {
+      const response = await api.get('/pagamentos');
+      if (response.status !== 200) {
         throw new Error('Erro ao carregar pagamentos');
       }
-      const data = await response.json();
+      const data = response.data;
       setPagamentos(data);
       setError(null);
     } catch (error) {
@@ -103,11 +104,11 @@ const PagamentosPage: React.FC = () => {
 
   const fetchVendas = async () => {
     try {
-      const response = await fetch('/api/vendas');
-      if (!response.ok) {
+      const response = await api.get('/vendas');
+      if (response.status !== 200) {
         throw new Error('Erro ao carregar vendas');
       }
-      const data = await response.json();
+      const data = response.data;
       setVendas(data);
     } catch (error) {
       console.error('Erro ao buscar vendas:', error);
@@ -122,18 +123,12 @@ const PagamentosPage: React.FC = () => {
       
       const method = editingPagamento ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          valor: parseFloat(formData.valor)
-        }),
+      const response = await api[method](url, {
+        ...formData,
+        valor: parseFloat(formData.valor)
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Erro ao salvar pagamento');
       }
 
@@ -148,11 +143,9 @@ const PagamentosPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este pagamento?')) {
       try {
-        const response = await fetch(`/api/pagamentos/${id}`, {
-          method: 'DELETE',
-        });
+        const response = await api.delete(`/pagamentos/${id}`);
 
-        if (!response.ok) {
+        if (response.status !== 200) {
           throw new Error('Erro ao excluir pagamento');
         }
 

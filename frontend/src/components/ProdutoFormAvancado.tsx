@@ -18,8 +18,7 @@ import ImageUpload from './ImageUpload';
 import type { ProdutoVenda } from '../types/produtoVenda';
 
 interface ProdutoFormAvancadoProps {
-  produto: ProdutoVenda;
-  cotacaoAtual: number;
+  produto?: ProdutoVenda | null;
   onSave: (produto: Omit<ProdutoVenda, 'id'> | ProdutoVenda) => Promise<void>;
   onCancel: () => void;
 }

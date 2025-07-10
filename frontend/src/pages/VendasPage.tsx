@@ -46,6 +46,7 @@ import {
 } from '@mui/icons-material';
 import type { Venda } from '../types/venda';
 import VendaForm from '../components/VendaForm';
+import { api } from '../services/api';
 
 const VendasPage: React.FC = () => {
   const [vendas, setVendas] = useState<Venda[]>([]);
@@ -63,11 +64,11 @@ const VendasPage: React.FC = () => {
   const fetchVendas = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/vendas');
-      if (!response.ok) {
+      const response = await api.get('/vendas');
+      if (response.status !== 200) {
         throw new Error('Erro ao carregar vendas');
       }
-      const data = await response.json();
+      const data = response.data;
       setVendas(data);
       setError(null);
     } catch (error) {
@@ -81,11 +82,9 @@ const VendasPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir esta venda?')) {
       try {
-        const response = await fetch(`/api/vendas/${id}`, {
-          method: 'DELETE',
-        });
+        const response = await api.delete(`/vendas/${id}`);
 
-        if (!response.ok) {
+        if (response.status !== 200) {
           throw new Error('Erro ao excluir venda');
         }
 
@@ -115,15 +114,9 @@ const VendasPage: React.FC = () => {
       
       const method = editingVenda ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(vendaData),
-      });
+      const response = await api[method](url, vendaData);
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Erro ao salvar venda');
       }
 

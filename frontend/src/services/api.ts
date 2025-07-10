@@ -17,4 +17,17 @@ export const uploadFotoProduto = (file: File) => {
   return axios.post(`${API_URL}/upload/foto-produto`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+};
+
+export const api = {
+  get: axios.get,
+  post: axios.post,
+  put: axios.put,
+  delete: axios.delete,
+  getClientes,
+  getCliente,
+  createCliente,
+  updateCliente,
+  deleteCliente,
+  uploadFotoProduto,
 }; 

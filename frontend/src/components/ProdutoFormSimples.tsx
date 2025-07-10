@@ -4,16 +4,10 @@ import {
   TextField,
   Button,
   Alert,
-  InputAdornment,
-  FormControlLabel,
-  Checkbox,
-  Typography,
-  Divider
+  InputAdornment
 } from '@mui/material';
 import {
-  LocalOffer as BrandIcon,
-  Percent as PercentIcon,
-  CurrencyExchange as ExchangeIcon
+  AttachMoney as MoneyIcon
 } from '@mui/icons-material';
 
 interface ProdutoSimples {
@@ -25,18 +19,11 @@ interface ProdutoSimples {
   preco_compra?: number;
   preco_venda?: number;
   observacoes?: string;
-  marca?: string;
-  imposto_percentual?: number;
-  dolar_agora?: number;
-  quantidade?: number;
-  is_novo?: boolean;
-  foto_url?: string;
-  created_at?: string;
 }
 
 interface ProdutoFormSimplesProps {
   produto?: ProdutoSimples | null;
-  onSave: (produto: ProdutoSimples) => Promise<void>;
+  onSave: (produto: any) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -54,11 +41,6 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
     preco_venda: '',
     foto_url: '',
     observacoes: '',
-    marca: '',
-    imposto_percentual: '',
-    dolar_agora: '',
-    quantidade: '',
-    is_novo: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -73,13 +55,8 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
         descricao: produto.descricao || '',
         preco_compra: produto.preco_compra?.toString() || '',
         preco_venda: produto.preco_venda?.toString() || '',
-        foto_url: produto.foto_url || '',
+        foto_url: (produto as any).foto_url || '',
         observacoes: produto.observacoes || '',
-        marca: produto.marca || '',
-        imposto_percentual: produto.imposto_percentual?.toString() || '',
-        dolar_agora: produto.dolar_agora?.toString() || '',
-        quantidade: produto.quantidade?.toString() || '1',
-        is_novo: produto.is_novo || false,
       });
     }
   }, [produto]);
@@ -104,20 +81,15 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
     try {
       setLoading(true);
       
-      const dataToSubmit: ProdutoSimples = {
+      const dataToSubmit: any = {
         nome_produto: formData.nome_produto,
-        cor: formData.cor || undefined,
-        tamanho: formData.tamanho || undefined,
-        descricao: formData.descricao || undefined,
-        preco_compra: formData.preco_compra ? parseFloat(formData.preco_compra) : undefined,
-        preco_venda: formData.preco_venda ? parseFloat(formData.preco_venda) : undefined,
-        foto_url: formData.foto_url || undefined,
-        observacoes: formData.observacoes || undefined,
-        marca: formData.marca || undefined,
-        imposto_percentual: formData.imposto_percentual ? parseFloat(formData.imposto_percentual) : undefined,
-        dolar_agora: formData.dolar_agora ? parseFloat(formData.dolar_agora) : undefined,
-        quantidade: formData.quantidade ? parseInt(formData.quantidade) : undefined,
-        is_novo: formData.is_novo,
+        cor: formData.cor || null,
+        tamanho: formData.tamanho || null,
+        descricao: formData.descricao || null,
+        preco_compra: formData.preco_compra ? parseFloat(formData.preco_compra) : null,
+        preco_venda: formData.preco_venda ? parseFloat(formData.preco_venda) : null,
+        foto_url: formData.foto_url || null,
+        observacoes: formData.observacoes || null,
       };
 
       // Se é edição, inclui o ID
@@ -154,7 +126,7 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
           required
         />
 
-        {/* Cor, Tamanho e Marca */}
+        {/* Cor e Tamanho */}
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
             fullWidth
@@ -171,21 +143,6 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
             value={formData.tamanho}
             onChange={handleChange}
             placeholder="Ex: P, M, G"
-          />
-          <TextField
-            fullWidth
-            label="Marca"
-            name="marca"
-            value={formData.marca}
-            onChange={handleChange}
-            placeholder="Ex: Nike, Adidas"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <BrandIcon />
-                </InputAdornment>
-              ),
-            }}
           />
         </Box>
 
@@ -205,7 +162,7 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
             fullWidth
-            label="Preço de Compra (USD)"
+            label="Preço de Compra"
             name="preco_compra"
             type="number"
             value={formData.preco_compra}
@@ -213,7 +170,7 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  $
+                  <MoneyIcon />
                 </InputAdornment>
               ),
             }}
@@ -221,11 +178,10 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
               step: "0.01",
               min: "0"
             }}
-            helperText="Sem imposto"
           />
           <TextField
             fullWidth
-            label="Preço de Venda (BRL)"
+            label="Preço de Venda"
             name="preco_venda"
             type="number"
             value={formData.preco_venda}
@@ -233,7 +189,7 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  R$
+                  <MoneyIcon />
                 </InputAdornment>
               ),
             }}
@@ -241,90 +197,8 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
               step: "0.01",
               min: "0"
             }}
-            helperText="Preço final ao cliente"
           />
         </Box>
-
-        {/* Divisor - Dados Financeiros */}
-        <Divider sx={{ my: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Dados Financeiros e Técnicos
-          </Typography>
-        </Divider>
-
-        {/* Imposto, Cotação e Quantidade */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField
-            fullWidth
-            label="Imposto (%)"
-            name="imposto_percentual"
-            type="number"
-            value={formData.imposto_percentual}
-            onChange={handleChange}
-            placeholder="7"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <PercentIcon />
-                </InputAdornment>
-              ),
-            }}
-            inputProps={{
-              step: "0.1",
-              min: "0",
-              max: "100"
-            }}
-            helperText="Percentual de imposto aplicado"
-          />
-          <TextField
-            fullWidth
-            label="Cotação USD"
-            name="dolar_agora"
-            type="number"
-            value={formData.dolar_agora}
-            onChange={handleChange}
-            placeholder="5.44"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <ExchangeIcon />
-                </InputAdornment>
-              ),
-            }}
-            inputProps={{
-              step: "0.0001",
-              min: "0"
-            }}
-            helperText="Cotação do dólar no momento"
-          />
-          <TextField
-            fullWidth
-            label="Quantidade"
-            name="quantidade"
-            type="number"
-            value={formData.quantidade}
-            onChange={handleChange}
-            placeholder="1"
-            inputProps={{
-              step: "1",
-              min: "1"
-            }}
-            helperText="Quantidade do produto"
-          />
-        </Box>
-
-        {/* Produto Novo */}
-        <FormControlLabel
-          control={
-            <Checkbox
-              name="is_novo"
-              checked={formData.is_novo}
-              onChange={(e) => setFormData(prev => ({ ...prev, is_novo: e.target.checked }))}
-              color="primary"
-            />
-          }
-          label="Produto Novo"
-        />
 
         {/* URL da Foto */}
         <TextField
@@ -348,24 +222,6 @@ const ProdutoFormSimples: React.FC<ProdutoFormSimplesProps> = ({
           rows={2}
           placeholder="Observações adicionais..."
         />
-
-        {/* Data de Criação (readonly) */}
-        {produto?.created_at && (
-          <TextField
-            fullWidth
-            label="Data de Criação"
-            value={new Date(produto.created_at).toLocaleString('pt-BR')}
-            InputProps={{
-              readOnly: true,
-            }}
-            variant="outlined"
-            sx={{ 
-              '& .MuiOutlinedInput-root': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              }
-            }}
-          />
-        )}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>

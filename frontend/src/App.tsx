@@ -1,21 +1,33 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { 
   ThemeProvider, 
   createTheme, 
-  CssBaseline
+  CssBaseline, 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Drawer, 
+  List, 
+  ListItem, 
+  ListItemButton,
+  ListItemIcon, 
+  ListItemText, 
+  Box,
+  Container
 } from '@mui/material';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
-import LoginPage from './pages/LoginPage';
+import { 
+  People as PeopleIcon, 
+  ShoppingCart as ShoppingCartIcon, 
+  Payment as PaymentIcon,
+  Inventory as InventoryIcon 
+} from '@mui/icons-material';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ClientesPage from './pages/ClientesPage';
 import ClienteDetalhePage from './pages/ClienteDetalhePage';
-import ClienteVendasConsolidadasPage from './pages/ClienteVendasConsolidadasPage';
 import ProdutosPage from './pages/ProdutosPage';
 import VendasPage from './pages/VendasPage';
-import VendaDetalhePage from './pages/VendaDetalhePage';
 import PagamentosPage from './pages/PagamentosPage';
-import { CotacaoProvider } from './contexts/CotacaoContext';
 import './App.css';
 
 const theme = createTheme({
@@ -68,95 +80,110 @@ const theme = createTheme({
   },
 });
 
+const drawerWidth = 280;
 
+const menuItems = [
+  { text: 'Clientes', icon: <PeopleIcon />, path: '/clientes' },
+  { text: 'Produtos', icon: <InventoryIcon />, path: '/produtos' },
+  { text: 'Vendas', icon: <ShoppingCartIcon />, path: '/vendas' },
+  { text: 'Pagamentos', icon: <PaymentIcon />, path: '/pagamentos' },
+];
 
 function NavigationContent() {
-  return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/clientes" replace />} />
-        <Route 
-          path="/clientes" 
-          element={
-            <ProtectedRoute>
-              <ClientesPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/cliente/:telefone" 
-          element={
-            <ProtectedRoute>
-              <ClienteDetalhePage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/cliente/:telefone/vendas-consolidadas" 
-          element={
-            <ProtectedRoute>
-              <ClienteVendasConsolidadasPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/produtos" 
-          element={
-            <ProtectedRoute>
-              <ProdutosPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendas" 
-          element={
-            <ProtectedRoute>
-              <VendasPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendas/:id" 
-          element={
-            <ProtectedRoute>
-              <VendaDetalhePage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/pagamentos" 
-          element={
-            <ProtectedRoute>
-              <PagamentosPage />
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
-    </Layout>
-  );
-}
+  const navigate = useNavigate();
+  const location = useLocation();
 
-function AuthenticatedApp() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <CotacaoProvider>
-        <Router>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* App Bar */}
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: '#fff',
+          color: '#1976d2',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}
+      >
+        <Toolbar>
+          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
+            Sistema de Compras - Zoe Grupo
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      {/* Drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        <Toolbar />
+        <Box sx={{ overflow: 'auto', pt: 2 }}>
+          <List>
+            {menuItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => navigate(item.path)}
+                >
+                  <ListItemIcon sx={{ color: location.pathname === item.path ? '#1976d2' : 'inherit' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={item.text} 
+                    sx={{ 
+                      '& .MuiTypography-root': { 
+                        fontWeight: location.pathname === item.path ? 600 : 400 
+                      } 
+                    }} 
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+
+      {/* Main Content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          bgcolor: 'background.default',
+          minHeight: '100vh',
+        }}
+      >
+        <Toolbar />
+        <Container maxWidth={false} sx={{ py: 3, px: 3, maxWidth: '100vw' }}>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/*" element={<NavigationContent />} />
+            <Route path="/" element={<ClientesPage />} />
+            <Route path="/clientes" element={<ClientesPage />} />
+            <Route path="/cliente/:telefone" element={<ClienteDetalhePage />} />
+            <Route path="/produtos" element={<ProdutosPage />} />
+            <Route path="/vendas" element={<VendasPage />} />
+            <Route path="/pagamentos" element={<PagamentosPage />} />
           </Routes>
-        </Router>
-      </CotacaoProvider>
-    </ThemeProvider>
+        </Container>
+      </Box>
+    </Box>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-    </AuthProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <NavigationContent />
+      </Router>
+    </ThemeProvider>
   );
 }
 

@@ -24,7 +24,6 @@ interface FormErrors {
   cep?: string;
   estado?: string;
   preferencia_entrega?: string;
-  indicado_por?: string;
 }
 
 const estados = [
@@ -52,7 +51,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
     cep: '',
     estado: '',
     indicado_por: '',
-    preferencia_entrega: '',
+    preferencia_entrega: 'retirada',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -69,7 +68,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
         cep: cliente.cep,
         estado: cliente.estado,
         indicado_por: cliente.indicado_por || '',
-        preferencia_entrega: cliente.preferencia_entrega || '',
+        preferencia_entrega: cliente.preferencia_entrega,
       });
     }
   }, [cliente]);
@@ -91,32 +90,10 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
   };
 
   const formatTelefone = (value: string) => {
-    // Remove tudo que não é dígito ou +
-    const cleaned = value.replace(/[^\d+]/g, '');
-    
-    // Se começar com +55, formatar como internacional
-    if (cleaned.startsWith('+55')) {
-      const numbers = cleaned.replace(/\D/g, '');
-      if (numbers.length >= 12 && numbers.length <= 13) {
-        // +55 (45) 99858-6091 ou +55 (45) 9858-6091
-        return numbers.replace(/(\d{2})(\d{2})(\d{4,5})(\d{4})/, '+$1 ($2) $3-$4');
-      }
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     }
-    // Se começar com 55 e tiver mais de 11 dígitos, assumir que é internacional
-    else if (cleaned.startsWith('55') && cleaned.length >= 12) {
-      const numbers = cleaned.replace(/\D/g, '');
-      if (numbers.length >= 12 && numbers.length <= 13) {
-        return numbers.replace(/(\d{2})(\d{2})(\d{4,5})(\d{4})/, '+$1 ($2) $3-$4');
-      }
-    }
-    // Formato nacional (11) 99999-9999 ou (11) 9999-9999
-    else {
-      const numbers = cleaned.replace(/\D/g, '');
-      if (numbers.length >= 10 && numbers.length <= 11) {
-        return numbers.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3');
-      }
-    }
-    
     return value;
   };
 
@@ -149,29 +126,34 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
 
     if (!formData.telefone.trim()) {
       newErrors.telefone = 'Telefone é obrigatório';
-    } else {
-      const numbersOnly = formData.telefone.replace(/\D/g, '');
-      // Aceita formato nacional (10-11 dígitos) ou internacional com +55 (12-13 dígitos)
-      if (numbersOnly.length < 10 || (numbersOnly.length > 11 && numbersOnly.length < 12) || numbersOnly.length > 13) {
-        newErrors.telefone = 'Telefone deve ter formato válido (nacional ou +55)';
-      }
+    } else if (formData.telefone.replace(/\D/g, '').length < 10) {
+      newErrors.telefone = 'Telefone deve ter pelo menos 10 dígitos';
     }
 
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
     }
 
-    // Validações opcionais - apenas se preenchidos
-    if (formData.cep.trim() && formData.cep.replace(/\D/g, '').length !== 8) {
+    if (!formData.endereco.trim()) {
+      newErrors.endereco = 'Endereço é obrigatório';
+    }
+
+    if (!formData.cidade.trim()) {
+      newErrors.cidade = 'Cidade é obrigatória';
+    }
+
+    if (!formData.cep.trim()) {
+      newErrors.cep = 'CEP é obrigatório';
+    } else if (formData.cep.replace(/\D/g, '').length !== 8) {
       newErrors.cep = 'CEP deve ter 8 dígitos';
     }
 
-    if (formData.indicado_por && formData.indicado_por.trim()) {
-      const numbersOnly = formData.indicado_por.replace(/\D/g, '');
-      // Aceita formato nacional (10-11 dígitos) ou internacional com +55 (12-13 dígitos)
-      if (numbersOnly.length < 10 || (numbersOnly.length > 11 && numbersOnly.length < 12) || numbersOnly.length > 13) {
-        newErrors.indicado_por = 'Telefone deve ter formato válido (nacional ou +55)';
-      }
+    if (!formData.estado.trim()) {
+      newErrors.estado = 'Estado é obrigatório';
+    }
+
+    if (!formData.preferencia_entrega.trim()) {
+      newErrors.preferencia_entrega = 'Preferência de entrega é obrigatória';
     }
 
     setErrors(newErrors);
@@ -186,25 +168,12 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
       try {
         setLoading(true);
         
-        // Processar telefones mantendo formato internacional para WhatsApp
-        const processarTelefone = (telefone: string) => {
-          const numbersOnly = telefone.replace(/\D/g, '');
-          // Se tem 12-13 dígitos e começa com 55, manter formato internacional
-          if (numbersOnly.length >= 12 && numbersOnly.startsWith('55')) {
-            return numbersOnly;
-          }
-          // Se tem 10-11 dígitos, adicionar +55 para WhatsApp
-          if (numbersOnly.length >= 10 && numbersOnly.length <= 11) {
-            return `55${numbersOnly}`;
-          }
-          return numbersOnly;
-        };
-
+        // Remove formatação do telefone e CEP antes de enviar
         const dataToSubmit: Cliente = {
           ...formData,
-          telefone: processarTelefone(formData.telefone),
+          telefone: formData.telefone.replace(/\D/g, ''),
           cep: formData.cep.replace(/\D/g, ''),
-          indicado_por: formData.indicado_por ? processarTelefone(formData.indicado_por) : undefined
+          indicado_por: formData.indicado_por?.replace(/\D/g, '') || undefined
         };
         
         await onSave(dataToSubmit);
@@ -240,11 +209,11 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             name="telefone"
             value={formData.telefone}
             onChange={handleTelefoneChange}
-            placeholder="+55 (45) 99858-6091 ou (11) 99999-9999"
+            placeholder="(11) 99999-9999"
             error={!!errors.telefone}
             helperText={errors.telefone}
             required
-            inputProps={{ maxLength: 20 }}
+            inputProps={{ maxLength: 15 }}
           />
         </Grid>
 
@@ -277,6 +246,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             onChange={handleChange}
             error={!!errors.endereco}
             helperText={errors.endereco}
+            required
             multiline
             rows={3}
           />
@@ -292,6 +262,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             placeholder="99999-999"
             error={!!errors.cep}
             helperText={errors.cep}
+            required
             inputProps={{ maxLength: 9 }}
           />
         </Grid>
@@ -305,6 +276,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             onChange={handleChange}
             error={!!errors.cidade}
             helperText={errors.cidade}
+            required
           />
         </Grid>
 
@@ -318,10 +290,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             onChange={handleChange}
             error={!!errors.estado}
             helperText={errors.estado}
+            required
           >
-            <MenuItem value="">
-              <em>Selecione um estado</em>
-            </MenuItem>
             {estados.map((estado) => (
               <MenuItem key={estado} value={estado}>
                 {estado}
@@ -347,10 +317,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             onChange={handleChange}
             error={!!errors.preferencia_entrega}
             helperText={errors.preferencia_entrega}
+            required
           >
-            <MenuItem value="">
-              <em>Selecione uma opção</em>
-            </MenuItem>
             {preferenciaEntregaOptions.map((option) => (
               <MenuItem key={option.value} value={option.value}>
                 {option.label}
@@ -365,17 +333,9 @@ const ClienteForm: React.FC<ClienteFormProps> = ({
             label="Indicado por (Telefone)"
             name="indicado_por"
             value={formData.indicado_por}
-            onChange={(e) => {
-              const formatted = formatTelefone(e.target.value);
-              setFormData(prev => ({
-                ...prev,
-                indicado_por: formatted
-              }));
-            }}
-            placeholder="+55 (45) 99858-6091 ou (11) 99999-9999"
-            error={!!errors.indicado_por}
-            helperText={errors.indicado_por}
-            inputProps={{ maxLength: 20 }}
+            onChange={handleTelefoneChange}
+            placeholder="(11) 99999-9999"
+            inputProps={{ maxLength: 15 }}
           />
         </Grid>
 

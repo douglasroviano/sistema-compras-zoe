@@ -1,4 +1,4 @@
-         import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,13 +14,7 @@ import {
   Alert,
   Skeleton,
   IconButton,
-  Tooltip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
+  Tooltip
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -38,8 +32,6 @@ import {
 import type { Cliente } from '../types/cliente';
 import type { Venda } from '../types/venda';
 import type { ProdutoVenda } from '../types/produtoVenda';
-import type { Pagamento } from '../types/pagamento';
-import { getCliente, getVendas, getProdutos, getPagamentos, updateVenda } from '../services/api';
 
 // Estilos CSS para impressão
 const printStyles = `
@@ -84,7 +76,6 @@ const ClienteDetalhePage: React.FC = () => {
   
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [vendas, setVendas] = useState<VendaCompleta[]>([]);
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,12 +91,16 @@ const ClienteDetalhePage: React.FC = () => {
       setError(null);
 
       // Buscar dados do cliente
-      const clienteResponse = await getCliente(telefone!);
-      setCliente(clienteResponse.data);
+      const clienteResponse = await fetch(`http://localhost:4000/api/clientes/${telefone}`);
+      if (!clienteResponse.ok) {
+        throw new Error('Cliente não encontrado');
+      }
+      const clienteData = await clienteResponse.json();
+      setCliente(clienteData);
 
       // Buscar vendas do cliente
-      const vendasResponse = await getVendas();
-      const todasVendas = vendasResponse.data;
+      const vendasResponse = await fetch(`http://localhost:4000/api/vendas`);
+      const todasVendas = await vendasResponse.json();
       
       // Filtrar vendas do cliente
       const vendasCliente = todasVendas.filter((venda: Venda) => 
@@ -113,34 +108,24 @@ const ClienteDetalhePage: React.FC = () => {
       );
 
       // Buscar produtos para cada venda
-      const produtosResponse = await getProdutos();
-      const todosProdutos = produtosResponse.data;
+      const vendasCompletas = await Promise.all(
+        vendasCliente.map(async (venda: Venda) => {
+          const produtosResponse = await fetch(`http://localhost:4000/api/produtos-venda`);
+          const todosProdutos = await produtosResponse.json();
+          
+          // Filtrar produtos desta venda
+          const produtosVenda = todosProdutos.filter((produto: ProdutoVenda) => 
+            produto.venda_id === venda.id
+          );
 
-      const vendasCompletas = vendasCliente.map((venda: Venda) => {
-        // Filtrar produtos desta venda
-        const produtosVenda = todosProdutos.filter((produto: ProdutoVenda) => 
-          produto.venda_id === venda.id
-        );
-
-        return {
-          ...venda,
-          produtos: produtosVenda
-        };
-      });
+          return {
+            ...venda,
+            produtos: produtosVenda
+          };
+        })
+      );
 
       setVendas(vendasCompletas);
-
-      // Buscar pagamentos
-      const pagamentosResponse = await getPagamentos();
-      const todosPagamentos = pagamentosResponse.data;
-      
-      // Filtrar pagamentos das vendas do cliente
-      const vendaIds = vendasCompletas.map((venda: VendaCompleta) => venda.id);
-      const pagamentosCliente = todosPagamentos.filter((pagamento: Pagamento) => 
-        vendaIds.includes(pagamento.venda_id)
-      );
-      
-      setPagamentos(pagamentosCliente);
     } catch (error) {
       console.error('Erro ao carregar dados do cliente:', error);
       setError('Erro ao carregar dados do cliente');
@@ -161,11 +146,10 @@ const ClienteDetalhePage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getStatusColor = (status?: string): 'default' | 'warning' | 'success' | 'error' | 'info' => {
+  const getStatusColor = (status?: string): 'default' | 'warning' | 'success' | 'error' => {
     switch (status) {
       case 'pendente': return 'warning';
       case 'despachada': return 'warning';
-      case 'whatsapp': return 'info';
       case 'entregue': return 'success';
       case 'cancelada': return 'error';
       default: return 'default';
@@ -176,7 +160,6 @@ const ClienteDetalhePage: React.FC = () => {
     switch (status) {
       case 'pendente': return 'Pendente';
       case 'despachada': return 'Despachada';
-      case 'whatsapp': return 'Whatsapp';
       case 'entregue': return 'Entregue';
       case 'cancelada': return 'Cancelada';
       default: return 'Não informado';
@@ -197,10 +180,6 @@ const ClienteDetalhePage: React.FC = () => {
     };
   };
 
-  const getPagamentosPorVenda = (vendaId: string) => {
-    return pagamentos.filter(pagamento => pagamento.venda_id === vendaId);
-  };
-
   const handlePrint = () => {
     // Adicionar estilos de impressão
     const styleElement = document.createElement('style');
@@ -216,78 +195,28 @@ const ClienteDetalhePage: React.FC = () => {
     }, 1000);
   };
 
-  const handleWhatsApp = async () => {
+  const handleWhatsApp = () => {
     if (!cliente) return;
     
     const resumo = calcularResumoGeral();
     
-    // Gerar lista de produtos de todas as vendas
-    let produtosTexto = '';
-    vendas.forEach((venda) => {
-      if (venda.produtos && venda.produtos.length > 0) {
-        produtosTexto += `\nPRODUTOS:\n`;
-        venda.produtos.forEach((produto) => {
-          let produtoLinha = `• ${produto.nome_produto}`;
-          
-          // Adicionar detalhes do produto
-          const detalhes = [];
-          if (produto.cor) detalhes.push(produto.cor);
-          if (produto.tamanho) detalhes.push(produto.tamanho);
-          if (produto.marca) detalhes.push(produto.marca);
-          
-          if (detalhes.length > 0) {
-            produtoLinha += ` ${detalhes.join(' ')}`;
-          }
-          
-          // Adicionar preço
-          produtoLinha += ` - ${formatCurrency(produto.preco_venda)}`;
-          
-          produtosTexto += produtoLinha + '\n';
-        });
-      }
-    });
+    // Versão sem emojis para máxima compatibilidade
+    const message = `Ola ${cliente.nome}!
 
-    // Mensagem com introdução personalizada
-    const message = `Olá ${cliente.nome}
-
-Aqui é o Douglas Roviano do Zoe Grupo de compras , essa mensagem é automática, envio para você o resumo das suas compras.
-
-O Vencimento do restante é ate o dia 13 de Julho o PIX é Meu telefone 48 996771122
+Aqui esta o resumo das suas compras:
 
 • Total de Compras: ${resumo.totalCompras}
 • Valor Total: ${formatCurrency(resumo.valorTotal)}
 • Valor Pago: ${formatCurrency(resumo.valorPago)}
 • Valor Pendente: ${formatCurrency(resumo.valorDevendo)}
-${produtosTexto}
+
 Qualquer duvida, estou a disposicao!
 
 Atenciosamente,
 Zoe Grupo de Compras`;
     
-    // Abrir WhatsApp
     const whatsappUrl = `https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
-    
-    // Atualizar status das vendas para "whatsapp"
-    try {
-      const vendasPendentes = vendas.filter(venda => 
-        venda.status_venda === 'pendente' || venda.status_venda === 'despachada'
-      );
-      
-      for (const venda of vendasPendentes) {
-        if (venda.id) {
-          await updateVenda(venda.id, {
-            ...venda,
-            status_venda: 'whatsapp'
-          });
-        }
-      }
-      
-      // Recarregar dados para mostrar o status atualizado
-      fetchClienteData();
-    } catch (error) {
-      console.error('Erro ao atualizar status das vendas:', error);
-    }
   };
 
   if (loading) {
@@ -349,12 +278,13 @@ Zoe Grupo de Compras`;
       {/* Informações do Cliente */}
       <Card className="print-header print-spacing" sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Avatar sx={{ width: 80, height: 80, bgcolor: 'rgba(255,255,255,0.2)' }}>
-              <PersonIcon sx={{ fontSize: 40 }} />
-            </Avatar>
-            
-            <Box sx={{ flexGrow: 1 }}>
+                     <Grid container spacing={3} alignItems="center">
+             <Grid size="auto">
+               <Avatar sx={{ width: 80, height: 80, bgcolor: 'rgba(255,255,255,0.2)' }}>
+                 <PersonIcon sx={{ fontSize: 40 }} />
+               </Avatar>
+             </Grid>
+             <Grid size={{ xs: 12 }}>
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
                 {cliente.nome}
               </Typography>
@@ -377,46 +307,8 @@ Zoe Grupo de Compras`;
                   />
                 )}
               </Box>
-            </Box>
-            
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<ReceiptIcon />}
-              onClick={() => {
-                // Navegar para a análise consolidada do cliente
-                navigate(`/cliente/${cliente.telefone}/vendas-consolidadas`);
-              }}
-              sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                color: 'white',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.3)'
-                },
-                mr: 1
-              }}
-            >
-              DETALHES
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              onClick={() => {
-                // Navegar para a página de vendas filtrada por este cliente
-                navigate(`/vendas?cliente=${encodeURIComponent(cliente.nome)}`);
-              }}
-              sx={{ 
-                borderColor: 'rgba(255,255,255,0.3)', 
-                color: 'white',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                  borderColor: 'rgba(255,255,255,0.5)'
-                }
-              }}
-            >
-              Lista de Vendas
-            </Button>
-          </Box>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
@@ -478,7 +370,7 @@ Zoe Grupo de Compras`;
        </Grid>
 
       {/* Lista de Vendas */}
-      <Typography id="historico-vendas" variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
         Histórico de Compras
       </Typography>
 
@@ -510,20 +402,9 @@ Zoe Grupo de Compras`;
                       size="small"
                     />
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      ID: {venda.id?.substring(0, 8)}...
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={() => navigate(`/vendas/${venda.id}`)}
-                      sx={{ minWidth: 'auto', px: 2 }}
-                    >
-                      Detalhes
-                    </Button>
-                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    ID: {venda.id?.substring(0, 8)}...
+                  </Typography>
                 </Box>
 
                 {/* Produtos */}
@@ -647,49 +528,6 @@ Zoe Grupo de Compras`;
                      </Box>
                    </Grid>
                  </Grid>
-
-                {/* Seção de Pagamentos */}
-                {venda.id && getPagamentosPorVenda(venda.id).length > 0 && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PaymentIcon color="primary" />
-                      Detalhamento dos Pagamentos
-                    </Typography>
-                    <TableContainer component={Paper} sx={{ boxShadow: 1 }}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Data</TableCell>
-                            <TableCell>Valor</TableCell>
-                            <TableCell>Método</TableCell>
-                            <TableCell>Observações</TableCell>
-                          </TableRow>
-                        </TableHead>
-                                                 <TableBody>
-                           {venda.id && getPagamentosPorVenda(venda.id).map((pagamento) => (
-                            <TableRow key={pagamento.id} hover>
-                              <TableCell>{formatDate(pagamento.data_pagamento)}</TableCell>
-                              <TableCell sx={{ fontWeight: 600, color: 'success.main' }}>
-                                {formatCurrency(pagamento.valor)}
-                              </TableCell>
-                              <TableCell>
-                                <Chip 
-                                  label={pagamento.metodo || 'Não informado'}
-                                  size="small"
-                                  variant="outlined"
-                                  color="primary"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {pagamento.observacoes || '-'}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Box>
-                )}
 
                 {venda.observacoes && (
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>

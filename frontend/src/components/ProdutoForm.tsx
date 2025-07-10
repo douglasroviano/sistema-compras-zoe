@@ -13,6 +13,7 @@ import {
   IconButton
 } from '@mui/material';
 import {
+  AttachMoney as MoneyIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import FotoUpload from './FotoUpload';
@@ -20,7 +21,7 @@ import type { Produto, ProdutoFormData } from '../types/produto';
 
 interface ProdutoFormProps {
   produto?: Produto | null;
-  onSave: (produto: Produto | ProdutoFormData) => Promise<void>;
+  onSave: (produto: Produto) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -42,7 +43,6 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
     descricao: '',
     preco_compra: undefined,
     preco_venda: undefined,
-    imposto_percentual: undefined, // Será definido pelo banco (7%)
     foto_url: '',
     observacoes: '',
     marca: '',
@@ -51,6 +51,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
 
   useEffect(() => {
     if (produto) {
@@ -61,7 +62,6 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
         descricao: produto.descricao || '',
         preco_compra: produto.preco_compra,
         preco_venda: produto.preco_venda,
-        imposto_percentual: produto.imposto_percentual,
         foto_url: produto.foto_url || '',
         observacoes: produto.observacoes || '',
         marca: produto.marca || '',
@@ -248,18 +248,22 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
           </Typography>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3 }}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             fullWidth
-            label="Preço Gôndola (USD)"
+            label="Preço de Compra"
             name="preco_compra"
             type="number"
             value={formData.preco_compra || ''}
             onChange={handleChange}
             error={!!errors.preco_compra}
-            helperText={errors.preco_compra || "Sem imposto"}
+            helperText={errors.preco_compra}
             InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <MoneyIcon />
+                </InputAdornment>
+              ),
             }}
             inputProps={{
               step: "0.01",
@@ -268,10 +272,10 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3 }}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             fullWidth
-            label="Venda (BRL)"
+            label="Preço de Venda"
             name="preco_venda"
             type="number"
             value={formData.preco_venda || ''}
@@ -279,7 +283,11 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
             error={!!errors.preco_venda}
             helperText={errors.preco_venda}
             InputProps={{
-              startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <MoneyIcon />
+                </InputAdornment>
+              ),
             }}
             inputProps={{
               step: "0.01",
@@ -288,27 +296,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 3 }}>
-          <TextField
-            fullWidth
-            label="Imposto (%)"
-            name="imposto_percentual"
-            type="number"
-            value={formData.imposto_percentual || ''}
-            onChange={handleChange}
-            InputProps={{
-              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-            }}
-            inputProps={{
-              step: "0.1",
-              min: "0",
-              max: "100"
-            }}
-            helperText="Padrão: 7%"
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 3 }}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             fullWidth
             label="Margem de Lucro"
@@ -359,6 +347,9 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
           ) : (
             <FotoUpload
               onUpload={handleFotoUpload}
+              loading={uploadingFoto}
+              accept="image/*"
+              maxSize={5 * 1024 * 1024} // 5MB
             />
           )}
         </Grid>
@@ -396,7 +387,7 @@ const ProdutoForm: React.FC<ProdutoFormProps> = ({
             <Button
               type="submit"
               variant="contained"
-              disabled={loading}
+              disabled={loading || uploadingFoto}
               sx={{ minWidth: 120 }}
             >
               {loading ? 'Salvando...' : produto ? 'Atualizar' : 'Salvar'}

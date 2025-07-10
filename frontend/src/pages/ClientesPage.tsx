@@ -40,6 +40,7 @@ import {
 import ClienteForm from '../components/ClienteForm';
 import type { Cliente } from '../types/cliente';
 import type { Venda } from '../types/venda';
+import { api } from '../services/api';
 
 interface ClienteComVendas extends Cliente {
   valorTotal: number;
@@ -67,16 +68,16 @@ const ClientesPage: React.FC = () => {
       setLoading(true);
       
       // Buscar clientes
-      const clientesResponse = await fetch('/api/clientes');
-      if (!clientesResponse.ok) {
+      const clientesResponse = await api.get('/clientes');
+      if (clientesResponse.status !== 200) {
         throw new Error('Erro ao carregar clientes');
       }
-      const clientesData = await clientesResponse.json();
+      const clientesData = clientesResponse.data;
       setClientes(clientesData);
 
       // Buscar vendas
-      const vendasResponse = await fetch('/api/vendas');
-      const vendasData: Venda[] = await vendasResponse.json();
+      const vendasResponse = await api.get('/vendas');
+      const vendasData: Venda[] = vendasResponse.data;
 
       // Filtrar apenas vendas ativas (pendente e despachada)
       const vendasAtivas = vendasData.filter(venda => 
@@ -119,15 +120,9 @@ const ClientesPage: React.FC = () => {
       
       const method = editingCliente ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(clienteData),
-      });
+      const response = await api[method](url, clienteData);
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Erro ao salvar cliente');
       }
 
@@ -142,11 +137,9 @@ const ClientesPage: React.FC = () => {
   const handleDelete = async (telefone: string) => {
     if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
       try {
-        const response = await fetch(`/api/clientes/${telefone}`, {
-          method: 'DELETE',
-        });
+        const response = await api.delete(`/clientes/${telefone}`);
 
-        if (!response.ok) {
+        if (response.status !== 200) {
           throw new Error('Erro ao excluir cliente');
         }
 

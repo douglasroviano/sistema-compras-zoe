@@ -5,14 +5,11 @@ export interface Produto {
   cor?: string;
   tamanho?: string;
   descricao?: string;
-  preco_compra?: number; // Sempre em USD (preço de gôndola)
-  preco_venda?: number;  // Sempre em BRL
-  quantidade?: number;   // Quantidade do produto na venda
-  dolar_agora?: number;  // Cotação no momento da venda
-  imposto_percentual?: number; // Default: 7% (banco de dados)
+  preco_compra?: number;
+  preco_venda?: number;
   foto_url?: string;
   observacoes?: string;
-  marca?: string;
+  marca?: string; // Novo campo
   created_at?: string;
 }
 
@@ -21,11 +18,9 @@ export interface ProdutoFormData {
   cor?: string;
   tamanho?: string;
   descricao?: string;
-  preco_compra?: number; // Sempre em USD (preço de gôndola)
-  preco_venda?: number;  // Sempre em BRL
-  dolar_agora?: number;  // Cotação no momento da venda
-  imposto_percentual?: number; // Default: 7% (banco de dados)
+  preco_compra?: number;
+  preco_venda?: number;
   foto_url?: string;
   observacoes?: string;
-  marca?: string;
+  marca?: string; // Novo campo
 } 
